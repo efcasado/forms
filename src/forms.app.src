@@ -1,0 +1,8 @@
+%% -*- mode: erlang -*-
+{application, forms,
+ [
+  {description, "Collection of functions that simplify working with "
+   "Erlang abstract forms"},
+  {vsn, "0.1"},
+  {modules, []}
+ ]}.
