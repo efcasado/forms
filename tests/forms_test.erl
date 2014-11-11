@@ -89,3 +89,36 @@ mr_test() ->
                     end,
                     0,
                     Forms).
+
+next1_test() ->
+    Module = forms,
+    Forms = forms:read(Module),
+
+    Forms = forms:map(
+              fun(Form) ->
+                      {next, Form}
+              end,
+              Forms).
+
+next2_test() ->
+    Module = forms,
+    Forms = forms:read(Module),
+
+    {_Count, Forms} = forms:mr(
+              fun(Form, Acc) ->
+                      {Acc + 1, {next, Form}}
+              end,
+              0,
+              Forms).
+
+next3_test() ->
+    Module = forms,
+    Forms = forms:read(Module),
+
+    Forms = forms:map(
+              fun({call, _L, _MF, _A} = Form) ->
+                      {next, Form};
+                 (Form) ->
+                      Form
+              end,
+              Forms).
