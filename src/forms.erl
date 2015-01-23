@@ -43,6 +43,7 @@
     map/2,
     reduce/3,
     mr/3,
+    filter/2,
     %% Debug functions
     from_abstract/1,
     to_abstract/1
@@ -52,12 +53,12 @@
 %%  Type definitions
 %% ========================================================================
 
--type form()  :: erl_parse:abstract_form().
--type forms() :: list(form()).
--type mapf()  :: fun((form()) -> any()).
--type redf()  :: fun((form(), any()) -> any()).
--type mrf()   :: fun((form(), any()) -> {any(), any()}).
-
+-type form()    :: erl_parse:abstract_form().
+-type forms()   :: list(form()).
+-type mapf()    :: fun((form()) -> any()).
+-type redf()    :: fun((form(), any()) -> any()).
+-type mrf()     :: fun((form(), any()) -> {any(), any()}).
+-type filterf() :: fun((form()) -> boolean()).
 
 %% ========================================================================
 %%  API
@@ -147,6 +148,25 @@ mr(Fun, Acc1, Acc2, [F| Fs]) ->
         {Acc, F1} ->
             mr(Fun, Acc, [F1| Acc2], Fs)
     end.
+
+%%-------------------------------------------------------------------------
+%% @doc
+%% Filter out all forms not meeting the provided predicate.
+%% @end
+%%-------------------------------------------------------------------------
+-spec filter(filterf(), forms()) -> forms().
+filter(Fun, Forms) ->
+    lists:reverse(reduce(
+                    fun(Form, Acc) ->
+                            case Fun(Form) of
+                                true ->
+                                    [Form| Acc];
+                                false ->
+                                    Acc
+                            end
+                    end,
+                    [],
+                    Forms)).
 
 
 %% ========================================================================
