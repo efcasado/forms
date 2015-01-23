@@ -42,7 +42,10 @@
     read/1,
     map/2,
     reduce/3,
-    mr/3
+    mr/3,
+    %% Debug functions
+    from_abstract/1,
+    to_abstract/1
    ]).
 
 %% ========================================================================
@@ -144,3 +147,36 @@ mr(Fun, Acc1, Acc2, [F| Fs]) ->
         {Acc, F1} ->
             mr(Fun, Acc, [F1| Acc2], Fs)
     end.
+
+
+%% ========================================================================
+%%  Debug functions
+%% ========================================================================
+
+%%-------------------------------------------------------------------------
+%% @doc
+%% Turn the provided Erlang attribute or expression into its abstract
+%% format representation.
+%% @end
+%%-------------------------------------------------------------------------
+-spec to_abstract(string()) -> form().
+to_abstract(String) ->
+    {ok, Tokens, _EndLocation} =
+        erl_scan:string(String),
+    {ok, AbsForm} =
+        try
+            {ok, _} = erl_parse:parse_form(Tokens)
+        catch
+            _:_ ->
+                {ok, _} = erl_parse:parse_exprs(Tokens)
+        end,
+    AbsForm.
+
+%%-------------------------------------------------------------------------
+%% @doc
+%% Turn the provided abstract form into an Erlang representation.
+%% @end
+%%-------------------------------------------------------------------------
+-spec from_abstract(form()) -> string().
+from_abstract(Form) ->
+    erl_prettypr:format(erl_syntax:form_list([Form])).
