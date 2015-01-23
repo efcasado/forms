@@ -178,5 +178,7 @@ to_abstract(String) ->
 %% @end
 %%-------------------------------------------------------------------------
 -spec from_abstract(form()) -> string().
+from_abstract(Forms) when is_list(Forms) ->
+    erl_prettypr:format(erl_syntax:form_list(Forms));
 from_abstract(Form) ->
     erl_prettypr:format(erl_syntax:form_list([Form])).
