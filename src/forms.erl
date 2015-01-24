@@ -118,7 +118,7 @@ map(Fun, Acc, [F| Fs]) ->
 reduce(_Fun, Acc, []) ->
     Acc;
 reduce(Fun, Acc, [F| Fs]) when is_tuple(F) ->
-    reduce(Fun, reduce(Fun, Fun(F, Acc), tuple_to_list(F)), Fs);
+    reduce(Fun, reduce(Fun, Acc, tuple_to_list(F)), Fs);
 reduce(Fun, Acc, [F| Fs]) when is_list(F) ->
     reduce(Fun, reduce(Fun, Acc, F), Fs);
 reduce(Fun, Acc, [F| Fs]) ->
@@ -202,3 +202,22 @@ from_abstract(Forms) when is_list(Forms) ->
     erl_prettypr:format(erl_syntax:form_list(Forms));
 from_abstract(Form) ->
     erl_prettypr:format(erl_syntax:form_list([Form])).
+
+
+%% ========================================================================
+%%  Local functions
+%% ========================================================================
+
+%%-------------------------------------------------------------------------
+%% @doc
+%% Check if the provided abstract form is valid.
+%% @end
+%%-------------------------------------------------------------------------
+-spec is_form(any()) -> boolean().
+is_form(Form) ->
+    case catch from_abstract(Form) of
+        {'EXIT', _} ->
+            false;
+        _ ->
+            true
+    end.
