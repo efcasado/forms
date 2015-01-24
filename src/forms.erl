@@ -53,12 +53,13 @@
 %%  Type definitions
 %% ========================================================================
 
--type form()    :: erl_parse:abstract_form().
--type forms()   :: list(form()).
--type mapf()    :: fun((form()) -> any()).
--type redf()    :: fun((form(), any()) -> any()).
--type mrf()     :: fun((form(), any()) -> {any(), any()}).
--type filterf() :: fun((form()) -> boolean()).
+-type form()      :: erl_parse:abstract_form().
+-type forms()     :: list(form()).
+-type mapf()      :: fun((form()) -> any()).
+-type redf()      :: fun((form(), any()) -> any()).
+-type mrf()       :: fun((form(), any()) -> {any(), any()}).
+-type predicate() :: fun((form()) -> boolean()).
+
 
 %% ========================================================================
 %%  API
@@ -133,8 +134,8 @@ reduce(Fun, Acc, [F| Fs]) when is_tuple(F) ->
     reduce(Fun, reduce(Fun, NewAcc, tuple_to_list(F)), Fs);
 reduce(Fun, Acc, [F| Fs]) when is_list(F) ->
     reduce(Fun, reduce(Fun, Acc, F), Fs);
-reduce(Fun, Acc, [F| Fs]) ->
-    reduce(Fun, Fun(F, Acc), Fs).
+reduce(Fun, Acc, [_F| Fs]) ->
+    reduce(Fun, Acc, Fs).
 
 %%-------------------------------------------------------------------------
 %% @doc
@@ -171,7 +172,7 @@ mr(Fun, Acc1, Acc2, [F| Fs]) ->
 %% Filter out all forms not meeting the provided predicate.
 %% @end
 %%-------------------------------------------------------------------------
--spec filter(filterf(), forms()) -> forms().
+-spec filter(predicate(), forms()) -> forms().
 filter(Fun, Forms) ->
     lists:reverse(reduce(
                     fun(Form, Acc) ->
