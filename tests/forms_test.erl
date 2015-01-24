@@ -122,3 +122,19 @@ next3_test() ->
                       Form
               end,
               Forms).
+
+any1_test() ->
+    Module = forms,
+    Forms = forms:read(Module),
+
+    true = forms:any(fun({function, _, any, 2, _}) -> true;
+                        (_) -> false end,
+                     Forms).
+
+any2_test() ->
+    Module = forms,
+    Forms = forms:read(Module),
+
+    false = forms:any(fun({function, _, doesnotexist, 2, _}) -> true;
+                         (_) -> false end,
+                      Forms).
