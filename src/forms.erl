@@ -13,7 +13,7 @@
 %%%-- LICENSE -------------------------------------------------------------
 %%% The MIT License (MIT)
 %%%
-%%% Copyright (c) 2014 Enrique Fernandez
+%%% Copyright (c) 2014-2015 Enrique Fernandez
 %%%
 %%% Permission is hereby granted, free of charge, to any person obtaining
 %%% a copy of this software and associated documentation files (the
