@@ -44,6 +44,8 @@
     reduce/3,
     mr/3,
     filter/2,
+    any/2,
+    all/2,
     %% Debug functions
     from_abstract/1,
     to_abstract/1
@@ -185,6 +187,79 @@ filter(Fun, Forms) ->
                     end,
                     [],
                     Forms)).
+
+%%-------------------------------------------------------------------------
+%% @doc
+%% Check if there is any form meeting the provided predicate.
+%% @end
+%%-------------------------------------------------------------------------
+-spec any(predicate(), forms()) -> boolean().
+any(_Pred, []) ->
+    false;
+any(Pred, [F| Fs]) when is_tuple(F) ->
+    Any = case is_form(F) of
+              true ->
+                  Pred(F);
+              false ->
+                  false
+          end,
+    case Any of
+        true ->
+            true;
+        false ->
+            case any(Pred, tuple_to_list(F)) of
+                true ->
+                    true;
+                false ->
+                    any(Pred, Fs)
+            end
+    end;
+any(Pred, [F| Fs]) when is_list(F) ->
+    case any(Pred, F) of
+        true ->
+            true;
+        false ->
+            any(Pred, Fs)
+    end;
+any(Pred, [_F| Fs]) ->
+    any(Pred, Fs).
+
+
+%%-------------------------------------------------------------------------
+%% @doc
+%% Check if all forms meet the provided predicate.
+%% @end
+%%-------------------------------------------------------------------------
+-spec all(predicate(), forms()) -> boolean().
+all(_Pred, []) ->
+    false;
+all(Pred, [F| Fs]) when is_tuple(F) ->
+    All = case is_form(F) of
+              true ->
+                  Pred(F);
+              false ->
+                  true
+          end,
+    case All of
+        false ->
+            false;
+        true ->
+            case all(Pred, tuple_to_list(F)) of
+                false ->
+                    false;
+                true ->
+                    all(Pred, Fs)
+            end
+    end;
+all(Pred, [F| Fs]) when is_list(F) ->
+    case all(Pred, F) of
+        false ->
+            false;
+        true ->
+            all(Pred, Fs)
+    end;
+all(Pred, [_F| Fs]) ->
+    all(Pred, Fs).
 
 
 %% ========================================================================
