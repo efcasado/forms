@@ -40,6 +40,8 @@
 -export(
    [
     read/1,
+    quote/1,
+    unquote/1,
     map/2,
     reduce/3,
     mr/3,
@@ -47,6 +49,7 @@
     any/2,
     all/2,
     %% Debug functions
+    eval/1,
     from_abstract/1,
     to_abstract/1
    ]).
@@ -85,6 +88,8 @@ read(File) ->
         {ok, Forms, _Extra} ->
             Forms
     end.
+
+
 
 %%-------------------------------------------------------------------------
 %% @doc
@@ -262,9 +267,83 @@ all(Pred, [_F| Fs]) ->
     all(Pred, Fs).
 
 
+%%-------------------------------------------------------------------------
+%% @doc
+%% Quote a form so that it can, for instance, be bound to a variable
+%% when manipulating Erlang's abstract code.
+%%
+%% The following abstract code is not valid code
+%%
+%%     {match, 1, {var, 1, 'A'},
+%%                {function, 1, foo, 0,
+%%                 [
+%%                  {clause, 0, [], [], [{atom, 1, foo}]}
+%%                 ]}}
+%%
+%% because, in Erlang code, it would be equivalent to
+%%
+%%     A = foo() -> foo.
+%%
+%% which is, obviously, no valid Erlang code. However, one could quote
+%% the right-hand side of the above match operation so that it becomes
+%% a valid Erlang expression.
+%%
+%% One could consider that an expression similar to the one below
+%%
+%%     {match, 1, {var, 1, 'A'},
+%%                forms:quote(
+%%                    {function, 1, foo, 0,
+%%                     [
+%%                      {clause, 0, [], [], [{atom, 1, foo}]}
+%%                     ]})}
+%%
+%% becomes something like
+%%
+%%     A = <<...>>.
+%% @end
+%%-------------------------------------------------------------------------
+quote(Term) ->
+    {bin, 0,
+     [ {bin_element, 0, {integer, 0, X}, default, default}
+       || <<X>> <= term_to_binary(Term) ]}.
+
+%%-------------------------------------------------------------------------
+%% @doc
+%% Inverse of the quote/1 function. Takes a quoted form and returns its
+%% original form.
+%% @end
+%%-------------------------------------------------------------------------
+unquote({bin, _, BinElements}) ->
+    binary_to_term(
+      lists:foldl(fun({bin_element, _,
+                       {integer, _, X},
+                       default,
+                       default},
+                      Acc) ->
+                          <<Acc/binary, X>> end,
+                  <<>>,
+                  BinElements));
+unquote(Binary) when is_binary(Binary) ->
+    binary_to_term(Binary).
+
+
 %% ========================================================================
 %%  Debug functions
 %% ========================================================================
+
+%%-------------------------------------------------------------------------
+%% @doc
+%% Evaluate the provided String expression or abstract form.
+%% @end
+%%-------------------------------------------------------------------------
+-spec eval(string() | form()) -> term().
+eval(Expr) when is_list(Expr) ->
+    {ok, A, _} = erl_scan:string(Expr),
+    {ok, B} = erl_parse:parse_exprs(A),
+    {value, Value, _} = erl_eval:exprs(B, []),
+    Value;
+eval(Form) ->
+    eval(lists:append(from_abstract(Form), ".")).
 
 %%-------------------------------------------------------------------------
 %% @doc
