@@ -89,12 +89,12 @@ has_export_attr(Module) ->
 %% functions.
 %%
 %% When specifying a module name instead of a modules' forms, these are
-%% the options one can set: force and binary.
+%% the options one can set: force and permanent.
 %% When 'force' is used, this function will modify modules even if they are
 %% in a sticky directory.
 %%     force  - Modifies the module, even if it is located in a sticky
 %%              directory
-%%     binary -
+%%     permanent - The change will persist even after a node restart
 %% @end
 %%-------------------------------------------------------------------------
 -spec add_function(forms:form(), boolean(), module(), list()) -> mod().
@@ -129,7 +129,7 @@ add_function(Fun, false = _Exp, Mod) ->
 %% in a sticky directory.
 %%     force  - Modifies the module, even if it is located in a sticky
 %%              directory
-%%     binary -
+%%     permanent - The change will persist even after a node restart
 %% @end
 %%-------------------------------------------------------------------------
 -spec rm_function(atom(), integer(), boolean(), module(), list())
@@ -172,7 +172,7 @@ rm_function(F1, A1, true, Forms) ->
 %% in a sticky directory.
 %%     force  - Modifies the module, even if it is located in a sticky
 %%              directory
-%%     binary -
+%%     permanent - The change will persist even after a node restart
 %% @end
 %%-------------------------------------------------------------------------
 -spec rm_spec(atom(), integer(), module(), list()) -> module().
@@ -218,7 +218,7 @@ export_function(Name, Arity, Module) ->
 %% in a sticky directory.
 %%     force  - Modifies the module, even if it is located in a sticky
 %%              directory
-%%     binary -
+%%     permanent - The change will persist even after a node restart
 %% @end
 %%-------------------------------------------------------------------------
 -spec unexport_function(atom(), integer(), module(), list()) -> module().
@@ -356,10 +356,10 @@ apply_changes(Module, Forms, Opts) ->
 
     Sticky andalso code:unstick_dir(Dir),
     code:purge(Module),
-    case load_as_binary(Opts) of
-        true ->
-            code:load_binary(Module, File, Bin);
+    case permanent(Opts) of
         false ->
+            code:load_binary(Module, File, Bin);
+        true ->
             case file:write_file(File, Bin) of
                 ok ->
                     code:load_file(File);
@@ -374,8 +374,8 @@ apply_changes(Module, Forms, Opts) ->
 forced(Opts) ->
     proplists:get_value(force, Opts, false).
 
-load_as_binary(Opts) ->
-    proplists:get_value(binary, Opts, false).
+permanent(Opts) ->
+    proplists:get_value(permanent, Opts, false).
 
 -spec module_file(module()) -> string().
 module_file(Module) ->
