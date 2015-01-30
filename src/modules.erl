@@ -40,7 +40,8 @@
     add_function/3, add_function/4,
     export_function/3,
     unexport_function/3,
-    function/3
+    function/3,
+    calling_functions/3
    ]).
 
 %% Type specifications
@@ -151,6 +152,44 @@ function(Name, Arity, [_Other| Forms] = _Mod) ->
     function(Name, Arity, Forms).
 
 
+%% TODO: Find also remote calls within the same module. E.g., calls
+%% to lists:member/2 within the lists module.
+-spec calling_functions(atom(), integer(), mod()) -> list().
+calling_functions(Name, Arity, Mod)
+  when is_atom(Mod) ->
+    calling_functions(Name, Arity, load_forms(Mod));
+calling_functions(Name, Arity, Forms) ->
+    OtherFunctions = '_other_functions'(Name, Arity, Forms),
+    lists:foldl(
+      fun({function, _, Name2, Arity2, _} = Function, Acc) ->
+              case '_is_calling_function'(Name, Arity, Function) of
+                  true ->
+                      [{Name2, Arity2}| Acc];
+                  false ->
+                      Acc
+              end
+      end,
+      [],
+      OtherFunctions).
+
+'_is_calling_function'(Name1, Arity1, Function) ->
+    forms:any(fun({call, _, {atom, _, Name2}, Args})
+                    when Name1 == Name2 andalso
+                         length(Args) == Arity1 ->
+                      true;
+                 (_) -> false
+              end,
+              [Function]).
+
+'_other_functions'(Name1, Arity1, Forms) ->
+    lists:filter(
+      fun({function, _, Name2, Arity2, _})
+            when Name1 /= Name2 orelse Arity1 /= Arity2 ->
+              true;
+         (_) ->
+              false
+      end,
+      Forms).
 %% ========================================================================
 %% Local functions
 %% ========================================================================
