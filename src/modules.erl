@@ -60,8 +60,8 @@
 %%-------------------------------------------------------------------------
 -spec module_name(forms:forms()) -> atom().
 module_name([]) ->
-    throw({invalid_module});
-module_name([{attribue, _, module, ModuleName}]) ->
+    throw(invalid_module);
+module_name([{attribute, _, module, ModuleName}| _]) ->
     ModuleName;
 module_name([_F| Forms]) ->
     module_name(Forms).
@@ -166,25 +166,47 @@ function(Name, Arity, [_Other| Forms] = _Mod) ->
     function(Name, Arity, Forms).
 
 
-%% TODO: Find also remote calls within the same module. E.g., calls
-%% to lists:member/2 within the lists module.
 -spec calling_functions(atom(), integer(), mod()) -> list().
 calling_functions(Name, Arity, Mod)
   when is_atom(Mod) ->
     calling_functions(Name, Arity, load_forms(Mod));
-calling_functions(Name, Arity, Forms) ->
-    OtherFunctions = '_other_functions'(Name, Arity, Forms),
-    lists:foldl(
-      fun({function, _, Name2, Arity2, _} = Function, Acc) ->
-              case '_is_calling_function'(Name, Arity, Function) of
-                  true ->
-                      [{Name2, Arity2}| Acc];
-                  false ->
-                      Acc
-              end
-      end,
-      [],
-      OtherFunctions).
+calling_functions(F, A, Forms) ->
+    CallingFunctions1 =
+        lists:foldl(
+          fun({function, _, Name2, Arity2, _} = Function, Acc) ->
+                  case '_is_calling_function'(F, A, Function) of
+                      true ->
+                          [{Name2, Arity2}| Acc];
+                      false ->
+                          Acc
+                  end
+          end,
+          [],
+          '_other_functions'(Forms, [{F, A}])),
+    M = module_name(Forms),
+    CallingFunctions2 =
+        lists:foldl(
+          fun({function, _, Name2, Arity2, _} = Function, Acc) ->
+                  case '_is_calling_function'(M, F, A, Function) of
+                      true ->
+                          [{Name2, Arity2}| Acc];
+                      false ->
+                          Acc
+                  end
+          end,
+          [],
+          '_other_functions'(Forms, [{F, A}| CallingFunctions1])),
+    lists:append([CallingFunctions1, CallingFunctions2]).
+
+'_is_calling_function'(M1, F1, A1, Function) ->
+    forms:any(fun({call, _, {remote, _, {atom, _, M2}, {atom, _, F2}}, Args})
+                    when M1 == M2 andalso
+                         F1 == F2 andalso
+                         A1 == length(Args) ->
+                      true;
+                 (_) -> false
+              end,
+              [Function]).
 
 '_is_calling_function'(Name1, Arity1, Function) ->
     forms:any(fun({call, _, {atom, _, Name2}, Args})
@@ -195,11 +217,10 @@ calling_functions(Name, Arity, Forms) ->
               end,
               [Function]).
 
-'_other_functions'(Name1, Arity1, Forms) ->
+'_other_functions'(Forms, Ignore) ->
     lists:filter(
-      fun({function, _, Name2, Arity2, _})
-            when Name1 /= Name2 orelse Arity1 /= Arity2 ->
-              true;
+      fun({function, _, Name, Arity, _}) ->
+              not lists:member({Name, Arity}, Ignore);
          (_) ->
               false
       end,
