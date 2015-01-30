@@ -40,6 +40,7 @@
     has_export_attr/1,
     add_function/3, add_function/4,
     rm_function/4, rm_function/5,
+    rm_spec/3, rm_spec/4,
     export_function/3,
     unexport_function/3, unexport_function/4,
     function/3,
@@ -131,7 +132,6 @@ add_function(Fun, false = _Exp, Mod) ->
 %%     binary -
 %% @end
 %%-------------------------------------------------------------------------
-%% TODO: Remove function specifications, if any.
 -spec rm_function(atom(), integer(), boolean(), module(), list())
                  -> forms:forms().
 rm_function(F, A, RmAll, Mod, Opts) ->
@@ -143,6 +143,7 @@ rm_function(F, A, RmAll, Mod, Opts) ->
 -spec rm_function(atom(), integer(), boolean(), forms:forms()) -> forms:forms().
 rm_function(F1, A1, false, Forms) ->
     Forms1 = unexport_function(F1, A1, Forms),
+    Forms2 = rm_spec(F1, A1, Forms1),
     lists:foldr(fun({function, _, F2, A2, _}, Acc)
                             when F1 == F2 andalso
                                  A1 == A2 ->
@@ -151,7 +152,7 @@ rm_function(F1, A1, false, Forms) ->
                               [Other| Acc]
                       end,
                       [],
-                      Forms1);
+                      Forms2);
 rm_function(F1, A1, true, Forms) ->
     Forms1 = rm_function(F1, A1, false, Forms),
     CallingFunctions = calling_functions(F1, A1, Forms1),
@@ -160,6 +161,38 @@ rm_function(F1, A1, true, Forms) ->
                 end,
                 Forms1,
                 CallingFunctions).
+
+%%-------------------------------------------------------------------------
+%% @doc
+%% Remove the function specification for the provided function, if any.
+%%
+%% When specifying a module name instead of a modules' forms, these are
+%% the options one can set: force and binary.
+%% When 'force' is used, this function will modify modules even if they are
+%% in a sticky directory.
+%%     force  - Modifies the module, even if it is located in a sticky
+%%              directory
+%%     binary -
+%% @end
+%%-------------------------------------------------------------------------
+-spec rm_spec(atom(), integer(), module(), list()) -> module().
+rm_spec(F, A, Mod, Opts) ->
+    OldForms = load_forms(Mod),
+    NewForms = rm_spec(F, A, OldForms),
+    ok = apply_changes(Mod, NewForms, Opts),
+    Mod.
+
+-spec rm_spec(atom(), integer(), forms:forms()) -> forms:forms().
+rm_spec(F1, A1, Forms) ->
+    lists:foldr(fun({attribute, _, spec, {{F2, A2}, _}}, Acc)
+                      when F1 == F2 andalso
+                           A1 == A2 ->
+                        Acc;
+                   (Other, Acc) ->
+                        [Other| Acc]
+                end,
+                [],
+                Forms).
 
 %%-------------------------------------------------------------------------
 %% @doc
