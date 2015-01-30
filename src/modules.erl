@@ -39,8 +39,9 @@
     module_name/1,
     has_export_attr/1,
     add_function/3, add_function/4,
+    rm_function/4, rm_function/5,
     export_function/3,
-    unexport_function/3,
+    unexport_function/3, unexport_function/4,
     function/3,
     calling_functions/3
    ]).
@@ -91,7 +92,7 @@ has_export_attr(Module) ->
 %% When 'force' is used, this function will modify modules even if they are
 %% in a sticky directory.
 %%     force  - Modifies the module, even if it is located in a sticky
-%%              dire
+%%              directory
 %%     binary -
 %% @end
 %%-------------------------------------------------------------------------
@@ -116,6 +117,52 @@ add_function(Fun, false = _Exp, Mod) ->
 
 %%-------------------------------------------------------------------------
 %% @doc
+%% Remove the specified function for the provided module.
+%%
+%% If the third argument is set to true, all functions calling the
+%% specified function will also be removed.
+%%
+%% When specifying a module name instead of a modules' forms, these are
+%% the options one can set: force and binary.
+%% When 'force' is used, this function will modify modules even if they are
+%% in a sticky directory.
+%%     force  - Modifies the module, even if it is located in a sticky
+%%              directory
+%%     binary -
+%% @end
+%%-------------------------------------------------------------------------
+%% TODO: Remove function specifications, if any.
+-spec rm_function(atom(), integer(), boolean(), module(), list())
+                 -> forms:forms().
+rm_function(F, A, RmAll, Mod, Opts) ->
+    OldForms = load_forms(Mod),
+    NewForms = rm_function(F, A, RmAll, OldForms),
+    ok = apply_changes(Mod, NewForms, Opts),
+    Mod.
+
+-spec rm_function(atom(), integer(), boolean(), forms:forms()) -> forms:forms().
+rm_function(F1, A1, false, Forms) ->
+    Forms1 = unexport_function(F1, A1, Forms),
+    lists:foldr(fun({function, _, F2, A2, _}, Acc)
+                            when F1 == F2 andalso
+                                 A1 == A2 ->
+                              Acc;
+                         (Other, Acc) ->
+                              [Other| Acc]
+                      end,
+                      [],
+                      Forms1);
+rm_function(F1, A1, true, Forms) ->
+    Forms1 = rm_function(F1, A1, false, Forms),
+    CallingFunctions = calling_functions(F1, A1, Forms1),
+    lists:foldl(fun({F2, A2}, AccForms) ->
+                        rm_function(F2, A2, true, AccForms)
+                end,
+                Forms1,
+                CallingFunctions).
+
+%%-------------------------------------------------------------------------
+%% @doc
 %% Add the function Name/Arity to the list of exported functions.
 %% @end
 %%-------------------------------------------------------------------------
@@ -131,12 +178,25 @@ export_function(Name, Arity, Module) ->
 %%-------------------------------------------------------------------------
 %% @doc
 %% Remove the function Name/Arity from the list of exported functions.
+%%
+%% When specifying a module name instead of a modules' forms, these are
+%% the options one can set: force and binary.
+%% When 'force' is used, this function will modify modules even if they are
+%% in a sticky directory.
+%%     force  - Modifies the module, even if it is located in a sticky
+%%              directory
+%%     binary -
 %% @end
 %%-------------------------------------------------------------------------
--spec unexport_function(atom(), integer(), mod()) -> mod().
-unexport_function(Name, Arity, Module)
-  when is_atom(Module) ->
-    unexport_function(Name, Arity, load_forms(Module));
+-spec unexport_function(atom(), integer(), module(), list()) -> module().
+unexport_function(Name, Arity, Mod, Opts)
+  when is_atom(Mod) ->
+    OldForms = load_forms(Mod),
+    NewForms = unexport_function(Name, Arity, OldForms),
+    ok = apply_changes(Mod, NewForms, Opts),
+    Mod.
+
+-spec unexport_function(atom(), integer(), forms:forms()) -> mod().
 unexport_function(Name, Arity, Module) ->
     forms:map(fun({attribute, L, export, ExpFuns}) ->
                       ExpFuns1 = lists:delete({Name, Arity}, ExpFuns),
@@ -225,6 +285,8 @@ calling_functions(F, A, Forms) ->
               false
       end,
       Forms).
+
+
 %% ========================================================================
 %% Local functions
 %% ========================================================================
@@ -255,7 +317,7 @@ apply_changes(Module, Forms, Opts) ->
     Dir = filename:dirname(File),
 
     Sticky = code:is_sticky(Module),
-    Sticky andalso forced(Opts) andalso throw({sticky_dir, Dir}),
+    Sticky andalso not forced(Opts) andalso throw({sticky_dir, Dir}),
 
     Bin = compile_module(Module, Forms),
 
