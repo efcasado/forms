@@ -37,7 +37,7 @@
 -export(
    [
     has_export_attr/1,
-    add_function/4,
+    add_function/3, add_function/4,
     export_function/3,
     unexport_function/3,
     function/3
@@ -80,17 +80,19 @@ has_export_attr(Module) ->
 %%     binary -
 %% @end
 %%-------------------------------------------------------------------------
--spec add_function(forms:form(), boolean(), mod(), list()) -> mod().
+-spec add_function(forms:form(), boolean(), module(), list()) -> mod().
 add_function(Function, Exp, Mod, Opts)
   when is_atom(Mod) ->
     OldForms = load_forms(Mod),
-    NewForms = add_function(Function, Exp, OldForms, Opts),
+    NewForms = add_function(Function, Exp, OldForms),
     ok = apply_changes(Mod, NewForms, Opts),
-    Mod;
-add_function({function, _, Name, Arity, _} =  Fun, true = _Exp, Mod, _Opts) ->
+    Mod.
+
+-spec add_function(forms:form(), boolean(), forms:forms()) -> forms:forms().
+add_function({function, _, Name, Arity, _} =  Fun, true = _Exp, Mod) ->
     Mod1 = '_add_function'(Fun, Mod),
     export_function(Name, Arity, Mod1);
-add_function(Fun, false = _Exp, Mod, _Opts) ->
+add_function(Fun, false = _Exp, Mod) ->
     '_add_function'(Fun, Mod).
 
 '_add_function'(Function, Module) ->
