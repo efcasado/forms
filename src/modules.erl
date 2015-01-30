@@ -37,7 +37,7 @@
 -export(
    [
     has_export_attr/1,
-    add_function/3,
+    add_function/4,
     export_function/3,
     unexport_function/3,
     function/3
@@ -70,18 +70,27 @@ has_export_attr(Module) ->
 %% Adds the provided function to the given module. If the exportet flag is
 %% set to true, the function will feature in the list of exported
 %% functions.
+%%
+%% When specifying a module name instead of a modules' forms, these are
+%% the options one can set: force and binary.
+%% When 'force' is used, this function will modify modules even if they are
+%% in a sticky directory.
+%%     force  - Modifies the module, even if it is located in a sticky
+%%              dire
+%%     binary -
 %% @end
 %%-------------------------------------------------------------------------
--spec add_function(forms:form(), mod(), boolean()) -> mod().
-add_function(Function, Mod, Exp)
+-spec add_function(forms:form(), boolean(), mod(), list()) -> mod().
+add_function(Function, Exp, Mod, Opts)
   when is_atom(Mod) ->
     OldForms = load_forms(Mod),
-    NewForms = add_function(Function, OldForms, Exp),
-    beam(Mod, NewForms);
-add_function({function, _, Name, Arity, _} =  Fun, Mod, true = _Exp) ->
+    NewForms = add_function(Function, Exp, OldForms, Opts),
+    ok = apply_changes(Mod, NewForms, Opts),
+    Mod;
+add_function({function, _, Name, Arity, _} =  Fun, true = _Exp, Mod, _Opts) ->
     Mod1 = '_add_function'(Fun, Mod),
     export_function(Name, Arity, Mod1);
-add_function(Fun, Mod, false = _Exp) ->
+add_function(Fun, false = _Exp, Mod, _Opts) ->
     '_add_function'(Fun, Mod).
 
 '_add_function'(Function, Module) ->
@@ -158,26 +167,63 @@ load_forms(Module) ->
             throw({cannot_load_forms, Module})
     end.
 
-beam(Module, Forms) ->
-    code:load_file(Module),
-    {file, File} = code:is_loaded(Module),
+%%-------------------------------------------------------------------------
+%% @doc
+%% Replace the specified modules implementation by the binary resulting
+%% of compiling the provided forms.
+%% @end
+%%-------------------------------------------------------------------------
+-spec apply_changes(module(), forms:forms(), list()) -> 'ok'.
+apply_changes(Module, Forms, Opts) ->
+    File = module_file(Module),
     Dir = filename:dirname(File),
-    code:unstick_dir(Dir),
-    %% TODO: We may want to preserve some options from the original file.
+
+    Sticky = code:is_sticky(Module),
+    Sticky andalso forced(Opts) andalso throw({sticky_dir, Dir}),
+
+    Bin = compile_module(Module, Forms),
+
+    Sticky andalso code:unstick_dir(Dir),
+    code:purge(Module),
+    case load_as_binary(Opts) of
+        true ->
+            code:load_binary(Module, File, Bin);
+        false ->
+            case file:write_file(File, Bin) of
+                ok ->
+                    code:load_file(File);
+                Error ->
+                    Sticky andalso code:stick_dir(Dir),
+                    throw(Error)
+            end
+    end,
+    Sticky andalso code:stick_dir(Dir),
+    ok.
+
+forced(Opts) ->
+    proplists:get_value(force, Opts, false).
+
+load_as_binary(Opts) ->
+    proplists:get_value(binary, Opts, false).
+
+-spec module_file(module()) -> string().
+module_file(Module) ->
+    case code:is_loaded(Module) of
+        false ->
+            {module, Module} = code:load_file(Module),
+            {file, File} = code:is_loaded(Module),
+            File;
+        {file, File} ->
+            File
+    end.
+
+-spec compile_module(module(), forms:forms()) -> binary().
+compile_module(Module, Forms) ->
+    %% TODO: We may want to preserve some options from the original forms.
     Opts = [debug_info],
     case compile:forms(Forms, Opts) of
         {ok, Module, Binary} ->
-            case file:write_file(File, Binary) of
-                ok ->
-                    Module,
-                    code:purge(Module),
-                    code:load_file(Module);
-                {error, Reason} ->
-                    code:stick_dir(Dir),
-                    throw({beam_file_not_generated, Reason})
-            end;
-        Error ->
-            code:stick_dir(Dir),
-            throw(Error)
-    end,
-    code:stick_dir(Dir).
+            Binary;
+        _ ->
+            throw({compile_error, Module})
+    end.
