@@ -36,6 +36,7 @@
 %% API
 -export(
    [
+    module_name/1,
     has_export_attr/1,
     add_function/3, add_function/4,
     export_function/3,
@@ -51,6 +52,19 @@
 %% ========================================================================
 %%  API
 %% ========================================================================
+
+%%-------------------------------------------------------------------------
+%% @doc
+%% Given the forms of a module, return its name.
+%% @end
+%%-------------------------------------------------------------------------
+-spec module_name(forms:forms()) -> atom().
+module_name([]) ->
+    throw({invalid_module});
+module_name([{attribue, _, module, ModuleName}]) ->
+    ModuleName;
+module_name([_F| Forms]) ->
+    module_name(Forms).
 
 %%-------------------------------------------------------------------------
 %% @doc
