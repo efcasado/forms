@@ -45,7 +45,7 @@
     unexport_function/3, unexport_function/4,
     function/3,
     calling_functions/3,
-    type/2,
+    type/3,
     is_type_exported/2
    ]).
 
@@ -331,16 +331,17 @@ calling_functions(F, A, Forms) ->
 %% Fetch the abstract code of the specified type.
 %% @end
 %%-------------------------------------------------------------------------
--spec type(atom(), mod()) -> {forms:form(), list(atom())}.
-type(Name, Module)
+-spec type(atom(), arity(), mod()) -> {forms:form(), list(atom())}.
+type(Name, Arity, Module)
   when is_atom(Module) ->
-    type(Name, forms:read(Module));
-type(Name, []) ->
-    throw({type_not_found, Name});
-type(Name, [{attribute, _, type, {Name, _, _}} = Type| _Forms]) ->
+    type(Name, Arity, forms:read(Module));
+type(Name, Arity, []) ->
+    throw({type_not_found, {Name, Arity}});
+type(Name, Arity, [{attribute, _, type, {Name, _, Args}} = Type| _Forms])
+  when length(Args) == Arity ->
     {Type, dependant_types(Type)};
-type(Name, [_| Forms]) ->
-    type(Name, Forms).
+type(Name, Arity, [_| Forms]) ->
+    type(Name, Arity, Forms).
 
 %%-------------------------------------------------------------------------
 %% @doc
