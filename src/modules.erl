@@ -4,6 +4,13 @@
 %%% Built on top of the functionality offered by the 'forms' module, this
 %%% module features a collection of functions to manipulate Erlang modules.
 %%%
+%%% Most of the functions implemented in this module will throw an
+%%% exception in case of not succeeding. For instance, the `function/3`
+%%% function will throw a `{function_not_found, {Name, Arity}}`
+%%% exception in case it cannot find the requested function. Similar
+%%% execeptions are thrown by functions such as `function_spec/3`,
+%%% `type/3`, `record/2`, etc.
+%%%
 %%% Author: Enrique Fernandez <enrique.fernandez@gmail.com>
 %%% Date:   January, 2015
 %%%
