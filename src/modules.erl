@@ -46,7 +46,8 @@
     function/3,
     calling_functions/3,
     type/3,
-    is_type_exported/2
+    is_type_exported/2,
+    record/2
    ]).
 
 %% Type specifications
@@ -365,6 +366,23 @@ is_type_exported(Type, [_| Forms]) ->
     is_type_exported(Type, Forms).
 
 
+%%-------------------------------------------------------------------------
+%% @doc
+%% Fetch the abstract code of the specified record.
+%% @end
+%%-------------------------------------------------------------------------
+-spec record(atom(), mod()) -> {forms:form(), list(), list()}.
+record(Name, Module)
+  when is_atom(Module) ->
+    record(Name, load_forms(Module));
+record(Name, []) ->
+    throw({record_not_found, Name});
+record(Name, [{attribute, _, record, {Name, _}} = Record| _Forms]) ->
+    {Record, dependant_types(Record), dependant_records(Record)};
+record(Name, [_| Forms]) ->
+    record(Name, Forms).
+
+
 %% ========================================================================
 %%  Local functions
 %% ========================================================================
@@ -468,6 +486,19 @@ dependant_types(Form) ->
                       (_, Acc) ->
                            Acc
                    end,
+                   [],
+                   [Form])).
+
+%%-------------------------------------------------------------------------
+%% @doc
+%% Return a list of dependant records for a given form.
+%% @end
+%%-------------------------------------------------------------------------
+-spec dependant_records(forms:form()) -> list(atom()).
+dependant_records(Form) ->
+    lists:usort(
+      forms:reduce(fun({record, _, Name, _}, Acc) -> [Name| Acc];
+                      (_Other, Acc) -> Acc end,
                    [],
                    [Form])).
 
