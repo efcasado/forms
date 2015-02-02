@@ -106,19 +106,28 @@ map(_Fun, Acc, []) ->
     lists:reverse(Acc);
 map(Fun, Acc, [F| Fs]) when is_list(F) ->
     map(Fun, [map(Fun, F)| Acc], Fs);
+%% map(Fun, Acc, [F| Fs]) ->
+%%     case is_form(F) of
+%%         true ->
+%%             case Fun(F) of
+%%                 {next, T} ->
+%%                     map(Fun, [T| Acc], Fs);
+%%                 T when is_tuple(T) ->
+%%                     map(Fun, [list_to_tuple(map(Fun, tuple_to_list(T)))| Acc], Fs);
+%%                 F1 ->
+%%                     map(Fun, [F1| Acc], Fs)
+%%             end;
+%%         false ->
+%%             map(Fun, [F| Acc], Fs)
+%%     end.
 map(Fun, Acc, [F| Fs]) ->
-    case is_form(F) of
-        true ->
-            case Fun(F) of
-                {next, T} ->
-                    map(Fun, [T| Acc], Fs);
-                T when is_tuple(T) ->
-                    map(Fun, [list_to_tuple(map(Fun, tuple_to_list(T)))| Acc], Fs);
-                F1 ->
-                    map(Fun, [F1| Acc], Fs)
-            end;
-        false ->
-            map(Fun, [F| Acc], Fs)
+    case Fun(F) of
+        {next, T} ->
+            map(Fun, [T| Acc], Fs);
+        T when is_tuple(T) ->
+            map(Fun, [list_to_tuple(map(Fun, tuple_to_list(T)))| Acc], Fs);
+        F1 ->
+            map(Fun, [F1| Acc], Fs)
     end.
 
 %%-------------------------------------------------------------------------
@@ -130,15 +139,17 @@ map(Fun, Acc, [F| Fs]) ->
 -spec reduce(redf(), any(), forms()) -> any().
 reduce(_Fun, Acc, []) ->
     Acc;
+%% reduce(Fun, Acc, [F| Fs]) when is_tuple(F) ->
+%%     NewAcc =
+%%         case is_form(F) of
+%%             true ->
+%%                 Fun(F, Acc);
+%%             false ->
+%%                 Acc
+%%         end,
+%%     reduce(Fun, reduce(Fun, NewAcc, tuple_to_list(F)), Fs);
 reduce(Fun, Acc, [F| Fs]) when is_tuple(F) ->
-    NewAcc =
-        case is_form(F) of
-            true ->
-                Fun(F, Acc);
-            false ->
-                Acc
-        end,
-    reduce(Fun, reduce(Fun, NewAcc, tuple_to_list(F)), Fs);
+    reduce(Fun, reduce(Fun, Fun(F, Acc), tuple_to_list(F)), Fs);
 reduce(Fun, Acc, [F| Fs]) when is_list(F) ->
     reduce(Fun, reduce(Fun, Acc, F), Fs);
 reduce(Fun, Acc, [_F| Fs]) ->
@@ -158,21 +169,32 @@ mr(_Fun, Acc1, Acc2, []) ->
 mr(Fun, Acc1, Acc2, [F| Fs]) when is_list(F) ->
     {NewAcc1, NewAcc2} = mr(Fun, Acc1, F),
     mr(Fun, NewAcc1, [NewAcc2| Acc2], Fs);
+%% mr(Fun, Acc1, Acc2, [F| Fs]) ->
+%%     case is_form(F) of
+%%         true ->
+%%             case Fun(F, Acc1) of
+%%                 {Acc, {next, T}} ->
+%%                     mr(Fun, Acc, [T| Acc2], Fs);
+%%                 {Acc, T} when is_tuple(T) ->
+%%                     {NewAcc1, NewAcc2} = mr(Fun, Acc, tuple_to_list(T)),
+%%                     mr(Fun, NewAcc1, [list_to_tuple(NewAcc2)| Acc2], Fs);
+%%                 {Acc, F1} ->
+%%                     mr(Fun, Acc, [F1| Acc2], Fs)
+%%             end;
+%%         false ->
+%%             mr(Fun, Acc1, [F| Acc2], Fs)
+%%     end.
 mr(Fun, Acc1, Acc2, [F| Fs]) ->
-    case is_form(F) of
-        true ->
-            case Fun(F, Acc1) of
-                {Acc, {next, T}} ->
-                    mr(Fun, Acc, [T| Acc2], Fs);
-                {Acc, T} when is_tuple(T) ->
-                    {NewAcc1, NewAcc2} = mr(Fun, Acc, tuple_to_list(T)),
-                    mr(Fun, NewAcc1, [list_to_tuple(NewAcc2)| Acc2], Fs);
-                {Acc, F1} ->
-                    mr(Fun, Acc, [F1| Acc2], Fs)
-            end;
-        false ->
-            mr(Fun, Acc1, [F| Acc2], Fs)
+    case Fun(F, Acc1) of
+        {Acc, {next, T}} ->
+            mr(Fun, Acc, [T| Acc2], Fs);
+        {Acc, T} when is_tuple(T) ->
+            {NewAcc1, NewAcc2} = mr(Fun, Acc, tuple_to_list(T)),
+            mr(Fun, NewAcc1, [list_to_tuple(NewAcc2)| Acc2], Fs);
+        {Acc, F1} ->
+            mr(Fun, Acc, [F1| Acc2], Fs)
     end.
+
 
 %%-------------------------------------------------------------------------
 %% @doc

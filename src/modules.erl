@@ -44,7 +44,8 @@
     export_function/3,
     unexport_function/3, unexport_function/4,
     function/3,
-    calling_functions/3
+    calling_functions/3,
+    type/2
    ]).
 
 %% Type specifications
@@ -324,10 +325,128 @@ calling_functions(F, A, Forms) ->
       end,
       Forms).
 
+%%-------------------------------------------------------------------------
+%% @doc
+%% Fetch the abstract code of the specified type.
+%% @end
+%%-------------------------------------------------------------------------
+-spec type(atom(), mod()) -> {forms:form(), list(atom())}.
+type(Name, Module)
+  when is_atom(Module) ->
+    type(Name, forms:read(Module));
+type(Name, []) ->
+    throw({type_not_found, Name});
+type(Name, [{attribute, _, type, {Name, _, _}} = Type| _Forms]) ->
+    {Type, dependant_types(Type)};
+type(Name, [_| Forms]) ->
+    type(Name, Forms).
+
 
 %% ========================================================================
-%% Local functions
+%%  Local functions
 %% ========================================================================
+
+%%-------------------------------------------------------------------------
+%% @doc
+%% Check if the provided type is a built-in type, or not.
+%% @end
+%%-------------------------------------------------------------------------
+-spec is_builtin_type(atom()) -> boolean().
+is_builtin_type(any) ->
+    true;
+is_builtin_type(none) ->
+    true;
+is_builtin_type(pid) ->
+    true;
+is_builtin_type(port) ->
+    true;
+is_builtin_type(reference) ->
+    true;
+is_builtin_type(nil) ->
+    true;
+is_builtin_type(atom) ->
+    true;
+is_builtin_type(binary) ->
+    true;
+is_builtin_type('fun') ->
+    true;
+is_builtin_type(integer) ->
+    true;
+is_builtin_type(range) ->
+    true;
+is_builtin_type(list) ->
+    true;
+is_builtin_type(maybe_improper_list) ->
+    true;
+is_builtin_type(nonempty_improper_list) ->
+    true;
+is_builtin_type(nonempty_list) ->
+    true;
+is_builtin_type(map) ->
+    true;
+is_builtin_type(tuple) ->
+    true;
+is_builtin_type(union) ->
+    true;
+is_builtin_type(term) ->
+    true;
+is_builtin_type(bitstring) ->
+    true;
+is_builtin_type(boolean) ->
+    true;
+is_builtin_type(byte) ->
+    true;
+is_builtin_type(char) ->
+    true;
+is_builtin_type(number) ->
+    true;
+is_builtin_type(string) ->
+    true;
+is_builtin_type(nonempty_string) ->
+    true;
+is_builtin_type(iodata) ->
+    true;
+is_builtin_type(function) ->
+    true;
+is_builtin_type(module) ->
+    true;
+is_builtin_type(mfa) ->
+    true;
+is_builtin_type(arity) ->
+    true;
+is_builtin_type(node) ->
+    true;
+is_builtin_type(timeout) ->
+    true;
+is_builtin_type(no_return) ->
+    true;
+is_builtin_type(_) ->
+    false.
+
+%%-------------------------------------------------------------------------
+%% @doc
+%% Return a list of dependant types for a given form.
+%%
+%% Built-in and remote types are left out.
+%% @end
+%%-------------------------------------------------------------------------
+-spec dependant_types(forms:form()) -> list(atom()).
+dependant_types(Form) ->
+    lists:usort(
+      forms:reduce(fun({type, _, union, _}, Acc) ->
+                           Acc;
+                      ({type, _, Name, _}, Acc) ->
+                           case is_builtin_type(Name) of
+                               false ->
+                                   [Name| Acc];
+                               true ->
+                                   Acc
+                           end;
+                      (_, Acc) ->
+                           Acc
+                   end,
+                   [],
+                   [Form])).
 
 %%-------------------------------------------------------------------------
 %% @doc
