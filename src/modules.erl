@@ -258,7 +258,12 @@ function(Name, Arity, [{function, _, Name, Arity, _} = Fun| _Forms] = _Mod) ->
 function(Name, Arity, [_Other| Forms] = _Mod) ->
     function(Name, Arity, Forms).
 
-
+%%-------------------------------------------------------------------------
+%% @doc
+%% Get a list of all the functions with static calls to the provided
+%% function.
+%% @end
+%%-------------------------------------------------------------------------
 -spec calling_functions(atom(), integer(), mod()) -> list().
 calling_functions(Name, Arity, Mod)
   when is_atom(Mod) ->
