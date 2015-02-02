@@ -53,7 +53,10 @@
 
 %% Type specifications
 -type mod() :: module() | forms:forms().
-
+-type abs_type()     :: forms:form().
+-type abs_spec()     :: forms:form().
+-type abs_record()   :: forms:form().
+-type abs_function() :: forms:form().
 
 %% ========================================================================
 %%  API
@@ -101,7 +104,7 @@ has_export_attr(Module) ->
 %%     permanent - The change will persist even after a node restart
 %% @end
 %%-------------------------------------------------------------------------
--spec add_function(forms:form(), boolean(), module(), list()) -> mod().
+-spec add_function(abs_function(), boolean(), module(), list()) -> mod().
 add_function(Function, Exp, Mod, Opts)
   when is_atom(Mod) ->
     OldForms = load_forms(Mod),
@@ -109,7 +112,7 @@ add_function(Function, Exp, Mod, Opts)
     ok = apply_changes(Mod, NewForms, Opts),
     Mod.
 
--spec add_function(forms:form(), boolean(), forms:forms()) -> forms:forms().
+-spec add_function(abs_function(), boolean(), forms:forms()) -> forms:forms().
 add_function({function, _, Name, Arity, _} =  Fun, true = _Exp, Mod) ->
     Mod1 = '_add_function'(Fun, Mod),
     export_function(Name, Arity, Mod1);
@@ -252,8 +255,8 @@ unexport_function(Name, Arity, Module) ->
 %% @end
 %%-------------------------------------------------------------------------
 -spec function(atom(), integer(), mod())
-              -> {forms:form(), list()} |
-                 {forms:form(), forms:form(), list(), list()}.
+              -> {abs_function(), list()} |
+                 {abs_function(), abs_spec(), list(), list()}.
 function(Name, Arity, Mod)
   when is_atom(Mod) ->
     function(Name, Arity, load_forms(Mod));
@@ -283,7 +286,7 @@ function(Name, Arity, Forms) ->
 %% @end
 %%-------------------------------------------------------------------------
 -spec function_spec(atom(), arity(), mod())
-                   -> {forms:form(), list()} | no_return().
+                   -> {abs_spec(), list()} | no_return().
 function_spec(Name, Arity, Module)
   when is_atom(Module) ->
     function_spec(Name, Arity, load_forms(Module));
@@ -367,7 +370,7 @@ calling_functions(F, A, Forms) ->
 %% Fetch the abstract code of the specified type.
 %% @end
 %%-------------------------------------------------------------------------
--spec type(atom(), arity(), mod()) -> {forms:form(), list({atom(), arity()})}.
+-spec type(atom(), arity(), mod()) -> {abs_type(), list({atom(), arity()})}.
 type(Name, Arity, Module)
   when is_atom(Module) ->
     type(Name, Arity, load_forms(Module));
@@ -406,7 +409,7 @@ is_type_exported(Type, [_| Forms]) ->
 %% Fetch the abstract code of the specified record.
 %% @end
 %%-------------------------------------------------------------------------
--spec record(atom(), mod()) -> {forms:form(), forms:form(), list(), list()}.
+-spec record(atom(), mod()) -> {abs_record(), abs_type(), list(), list()}.
 record(Name, Module)
   when is_atom(Module) ->
     record(Name, load_forms(Module));
