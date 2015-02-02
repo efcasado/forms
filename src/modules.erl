@@ -39,6 +39,7 @@
     module_name/1,
     has_export_attr/1,
     has_function/3,
+    has_record/2,
     add_function/3, add_function/4,
     rm_function/4, rm_function/5,
     rm_spec/3, rm_spec/4,
@@ -92,7 +93,7 @@ has_export_attr(Module) ->
 
 %%-------------------------------------------------------------------------
 %% @doc
-%% Check if the given function exists in the provided module.
+%% Check if the specified function exists in the provided module.
 %% @end
 %%-------------------------------------------------------------------------
 -spec has_function(atom(), arity(), mod()) -> boolean().
@@ -106,6 +107,21 @@ has_function(Name, Arity, [{function, _, Name, Arity, _}| _]) ->
 has_function(Name, Arity, [_| Forms]) ->
     has_function(Name, Arity, Forms).
 
+%%-------------------------------------------------------------------------
+%% @doc
+%% Check if the specified record exists in the provided module.
+%% @end
+%%-------------------------------------------------------------------------
+-spec has_record(atom(), mod()) -> boolean().
+has_record(Name, Module)
+  when is_atom(Module) ->
+    has_record(Name, load_forms(Module));
+has_record(_Name, []) ->
+    false;
+has_record(Name, [{attribute, _, record, {Name, _}}| _]) ->
+    true;
+has_record(Name, [_| Forms]) ->
+    has_record(Name, Forms).
 
 %%-------------------------------------------------------------------------
 %% @doc
