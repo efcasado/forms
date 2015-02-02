@@ -44,6 +44,7 @@
     export_function/3,
     unexport_function/3, unexport_function/4,
     function/3,
+    function_spec/3,
     calling_functions/3,
     type/3,
     is_type_exported/2,
@@ -250,16 +251,50 @@ unexport_function(Name, Arity, Module) ->
 %% '{function_not_found, {Name, Arity}}' exception.
 %% @end
 %%-------------------------------------------------------------------------
--spec function(atom(), integer(), mod()) -> forms:form().
+-spec function(atom(), integer(), mod())
+              -> {forms:form(), list()} |
+                 {forms:form(), forms:form(), list(), list()}.
 function(Name, Arity, Mod)
   when is_atom(Mod) ->
     function(Name, Arity, load_forms(Mod));
-function(Name, Arity, []) ->
+function(Name, Arity, Forms) ->
+    {Fun, Records} = '_function'(Name, Arity, Forms),
+    case catch function_spec(Name, Arity, Forms) of
+        {spec_not_found, {Name, Arity}} ->
+            {Fun, Records};
+        {Spec, Types} ->
+            {Fun, Spec, Records, Types}
+    end.
+
+'_function'(Name, Arity, []) ->
     throw({function_not_found, {Name, Arity}});
-function(Name, Arity, [{function, _, Name, Arity, _} = Fun| _Forms] = _Mod) ->
-    Fun;
-function(Name, Arity, [_Other| Forms] = _Mod) ->
-    function(Name, Arity, Forms).
+'_function'(Name, Arity, [{function, _, Name, Arity, _} = Fun| _Forms]) ->
+    {Fun, dependant_records(Fun)};
+'_function'(Name, Arity, [_Other| Forms] = _Mod) ->
+    '_function'(Name, Arity, Forms).
+
+%%-------------------------------------------------------------------------
+%% @doc
+%% Fetch the abstract code of the requested function specification from the
+%% given module.
+%%
+%% If the function specification is not found, a
+%% {spec_not_found, {Name, Arity}} exception is thrown.
+%% @end
+%%-------------------------------------------------------------------------
+-spec function_spec(atom(), arity(), mod())
+                   -> {forms:form(), list()} | no_return().
+function_spec(Name, Arity, Module)
+  when is_atom(Module) ->
+    function_spec(Name, Arity, load_forms(Module));
+function_spec(Name, Arity, []) ->
+    throw({spec_not_found, {Name, Arity}});
+function_spec(Name, Arity,
+              [{attribute, _, spec, {{Name, Arity}, _}} = Spec| _Forms]) ->
+    {Spec, dependant_types(Spec)};
+function_spec(Name, Arity, [_| Forms]) ->
+    function_spec(Name, Arity, Forms).
+
 
 %%-------------------------------------------------------------------------
 %% @doc
@@ -439,6 +474,8 @@ is_builtin_type(map) ->
 is_builtin_type(tuple) ->
     true;
 is_builtin_type(union) ->
+    true;
+is_builtin_type(product) ->
     true;
 is_builtin_type(term) ->
     true;
