@@ -44,7 +44,7 @@
 -export(
    [
     module_name/1,
-    has_export_attr/1,
+    has_attr/2,
     has_function/3,
     has_record/2,
     has_type/3,
@@ -88,15 +88,15 @@ module_name([_F| Forms]) ->
 
 %%-------------------------------------------------------------------------
 %% @doc
-%% Check if the given module has any '-export([])' attribute.
+%% Check if the given module has the specified attribute.
 %% @end
 %%-------------------------------------------------------------------------
--spec has_export_attr(mod()) -> boolean().
-has_export_attr(Module)
+-spec has_attr(atom(), mod()) -> boolean().
+has_attr(Name, Module)
   when is_atom(Module) ->
-    has_export_attr(load_forms(Module));
-has_export_attr(Module) ->
-    lists:any(fun({attribute,_,export,_}) ->  true;
+    has_attr(Name, load_forms(Module));
+has_attr(Name, Module) ->
+    lists:any(fun({attribute,_,AttrName,_}) when AttrName == Name->  true;
                  (_) -> false end,
               Module).
 
