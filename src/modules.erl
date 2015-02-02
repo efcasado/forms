@@ -45,7 +45,8 @@
     unexport_function/3, unexport_function/4,
     function/3,
     calling_functions/3,
-    type/2
+    type/2,
+    is_type_exported/2
    ]).
 
 %% Type specifications
@@ -341,6 +342,27 @@ type(Name, [{attribute, _, type, {Name, _, _}} = Type| _Forms]) ->
 type(Name, [_| Forms]) ->
     type(Name, Forms).
 
+%%-------------------------------------------------------------------------
+%% @doc
+%% Check if the provided type is exported in the given module.
+%% @end
+%%-------------------------------------------------------------------------
+-spec is_type_exported({atom(), integer()}, mod()) -> boolean().
+is_type_exported(Type, Module)
+  when is_atom(Module) ->
+    is_type_exported(Type, load_forms(Module));
+is_type_exported(_Type, []) ->
+    false;
+is_type_exported(Type, [{attribute, _, export_type, ExpTypes}| Forms]) ->
+    case lists:member(Type, ExpTypes) of
+        true ->
+            true;
+        false ->
+            is_type_exported(Type, Forms)
+    end;
+is_type_exported(Type, [_| Forms]) ->
+    is_type_exported(Type, Forms).
+
 
 %% ========================================================================
 %%  Local functions
@@ -435,10 +457,10 @@ dependant_types(Form) ->
     lists:usort(
       forms:reduce(fun({type, _, union, _}, Acc) ->
                            Acc;
-                      ({type, _, Name, _}, Acc) ->
+                      ({type, _, Name, Args}, Acc) ->
                            case is_builtin_type(Name) of
                                false ->
-                                   [Name| Acc];
+                                   [{Name, length(Args)}| Acc];
                                true ->
                                    Acc
                            end;
