@@ -334,7 +334,7 @@ calling_functions(F, A, Forms) ->
 -spec type(atom(), arity(), mod()) -> {forms:form(), list(atom())}.
 type(Name, Arity, Module)
   when is_atom(Module) ->
-    type(Name, Arity, forms:read(Module));
+    type(Name, Arity, load_forms(Module));
 type(Name, Arity, []) ->
     throw({type_not_found, {Name, Arity}});
 type(Name, Arity, [{attribute, _, type, {Name, _, Args}} = Type| _Forms])
