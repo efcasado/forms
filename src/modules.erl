@@ -371,16 +371,27 @@ is_type_exported(Type, [_| Forms]) ->
 %% Fetch the abstract code of the specified record.
 %% @end
 %%-------------------------------------------------------------------------
--spec record(atom(), mod()) -> {forms:form(), list(), list()}.
+-spec record(atom(), mod()) -> {forms:form(), forms:form(), list(), list()}.
 record(Name, Module)
   when is_atom(Module) ->
     record(Name, load_forms(Module));
-record(Name, []) ->
+record(Name, Forms) ->
+    {Record, RecordType} = '_record'(Name, Forms, {undefined, undefined}),
+    {Record, RecordType,
+     dependant_types(RecordType),
+     dependant_records(RecordType)}.
+
+%% The record type seems to go after the record specification, always.
+'_record'(Name, [], {_Record, _RecordType}) ->
     throw({record_not_found, Name});
-record(Name, [{attribute, _, record, {Name, _}} = Record| _Forms]) ->
-    {Record, dependant_types(Record), dependant_records(Record)};
-record(Name, [_| Forms]) ->
-    record(Name, Forms).
+'_record'(Name, [{attribute, _, record, {Name, _}} = Record| Forms],
+          {_, RecordType}) ->
+    '_record'(Name, Forms, {Record, RecordType});
+'_record'(Name, [{attribute, _, type, {{record, Name}, _, _}} = RecordType| _],
+          {Record, _}) ->
+    {Record, RecordType};
+'_record'(Name, [_| Forms], Acc) ->
+    '_record'(Name, Forms, Acc).
 
 
 %% ========================================================================
