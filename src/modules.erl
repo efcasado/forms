@@ -332,7 +332,7 @@ calling_functions(F, A, Forms) ->
 %% Fetch the abstract code of the specified type.
 %% @end
 %%-------------------------------------------------------------------------
--spec type(atom(), arity(), mod()) -> {forms:form(), list(atom())}.
+-spec type(atom(), arity(), mod()) -> {forms:form(), list({atom(), arity()})}.
 type(Name, Arity, Module)
   when is_atom(Module) ->
     type(Name, Arity, load_forms(Module));
@@ -471,7 +471,7 @@ is_builtin_type(_) ->
 %% Built-in and remote types are left out.
 %% @end
 %%-------------------------------------------------------------------------
--spec dependant_types(forms:form()) -> list(atom()).
+-spec dependant_types(forms:form()) -> list({atom(), arity()}).
 dependant_types(Form) ->
     lists:usort(
       forms:reduce(fun({type, _, union, _}, Acc) ->
