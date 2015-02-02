@@ -40,6 +40,7 @@
     has_export_attr/1,
     has_function/3,
     has_record/2,
+    has_type/3,
     add_function/3, add_function/4,
     rm_function/4, rm_function/5,
     rm_spec/3, rm_spec/4,
@@ -59,6 +60,7 @@
 -type abs_spec()     :: forms:form().
 -type abs_record()   :: forms:form().
 -type abs_function() :: forms:form().
+-type type()         :: atom() | {'record', atom()}.
 
 %% ========================================================================
 %%  API
@@ -122,6 +124,23 @@ has_record(Name, [{attribute, _, record, {Name, _}}| _]) ->
     true;
 has_record(Name, [_| Forms]) ->
     has_record(Name, Forms).
+
+%%-------------------------------------------------------------------------
+%% @doc
+%% Check if the specified type exists in the provided module.
+%% @end
+%%-------------------------------------------------------------------------
+-spec has_type(type(), arity(), mod()) -> boolean().
+has_type(Name, Arity, Module)
+  when is_atom(Module) ->
+    has_type(Name, Arity, load_forms(Module));
+has_type(_Name, _Arity, []) ->
+    false;
+has_type(Name, Arity, [{attribute, _, type, {Name, _, Args}}| _])
+  when length(Args) ==  Arity ->
+    true;
+has_type(Name, Arity, [_| Forms]) ->
+    has_type(Name, Arity, Forms).
 
 %%-------------------------------------------------------------------------
 %% @doc
