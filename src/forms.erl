@@ -42,7 +42,7 @@
     read/1,
     quote/1,
     unquote/1,
-    map/2,
+    map/2, map/3,
     reduce/3,
     mr/3,
     filter/2,
@@ -64,6 +64,18 @@
 -type redf()      :: fun((form(), any()) -> any()).
 -type mrf()       :: fun((form(), any()) -> {any(), any()}).
 -type predicate() :: fun((form()) -> boolean()).
+-type opt()       :: 'forms_only'.
+-type opts()      :: list(opt()).
+
+%% ========================================================================
+%%  Macro definitions
+%% ========================================================================
+
+%% Options supported by functions such as maps, reduce, etc.
+-define(OPTS,
+        [
+         forms_only
+        ]).
 
 
 %% ========================================================================
@@ -89,8 +101,6 @@ read(File) ->
             Forms
     end.
 
-
-
 %%-------------------------------------------------------------------------
 %% @doc
 %% Calls the provided fun/1 on all given forms, including nested forms.
@@ -99,35 +109,51 @@ read(File) ->
 %% @end
 %%-------------------------------------------------------------------------
 -spec map(mapf(), forms()) -> forms().
-map(Fun, Fs) ->
-    map(Fun, [], Fs).
+map(Fun, Forms) ->
+    map(Fun, Forms, []).
 
-map(_Fun, Acc, []) ->
+-spec map(mapf(), forms(), opts()) -> forms().
+map(Fun, Forms, Opts)
+  when is_list(Opts) ->
+    Opts1 = parse_opts(Opts),
+    '_map'(Fun, [], Forms, maps:from_list(Opts1));
+map(Fun, Forms, Opts)
+  when is_map(Opts) ->
+    '_map'(Fun, [], Forms, Opts).
+
+'_map'(_Fun, Acc, [], _Opts) ->
     lists:reverse(Acc);
-map(Fun, Acc, [F| Fs]) when is_list(F) ->
-    map(Fun, [map(Fun, F)| Acc], Fs);
-%% map(Fun, Acc, [F| Fs]) ->
-%%     case is_form(F) of
-%%         true ->
-%%             case Fun(F) of
-%%                 {next, T} ->
-%%                     map(Fun, [T| Acc], Fs);
-%%                 T when is_tuple(T) ->
-%%                     map(Fun, [list_to_tuple(map(Fun, tuple_to_list(T)))| Acc], Fs);
-%%                 F1 ->
-%%                     map(Fun, [F1| Acc], Fs)
-%%             end;
-%%         false ->
-%%             map(Fun, [F| Acc], Fs)
-%%     end.
-map(Fun, Acc, [F| Fs]) ->
+'_map'(Fun, Acc, [F| Fs], Opts) when is_list(F) ->
+    '_map'(Fun, [map(Fun, F, Opts)| Acc], Fs, Opts);
+'_map'(Fun, Acc, [F| Fs], #{forms_only := true} = Opts) ->
+    case is_form(F) of
+        true ->
+            case Fun(F) of
+                {next, T} ->
+                    '_map'(Fun, [T| Acc], Fs, Opts);
+                T when is_tuple(T) ->
+                    '_map'(Fun,
+                           [list_to_tuple(
+                              map(Fun, tuple_to_list(T), Opts))| Acc],
+                           Fs,
+                  Opts);
+                F1 ->
+                    '_map'(Fun, [F1| Acc], Fs, Opts)
+            end;
+        false ->
+            '_map'(Fun, [F| Acc], Fs, Opts)
+    end;
+'_map'(Fun, Acc, [F| Fs], Opts) ->
     case Fun(F) of
         {next, T} ->
-            map(Fun, [T| Acc], Fs);
+            '_map'(Fun, [T| Acc], Fs, Opts);
         T when is_tuple(T) ->
-            map(Fun, [list_to_tuple(map(Fun, tuple_to_list(T)))| Acc], Fs);
+            '_map'(Fun,
+                   [list_to_tuple(map(Fun, tuple_to_list(T), Opts))| Acc],
+                   Fs,
+                  Opts);
         F1 ->
-            map(Fun, [F1| Acc], Fs)
+            '_map'(Fun, [F1| Acc], Fs, Opts)
     end.
 
 %%-------------------------------------------------------------------------
@@ -137,23 +163,37 @@ map(Fun, Acc, [F| Fs]) ->
 %% @end
 %%-------------------------------------------------------------------------
 -spec reduce(redf(), any(), forms()) -> any().
-reduce(_Fun, Acc, []) ->
+reduce(Fun, Acc, Forms) ->
+    reduce(Fun, Acc, Forms, []).
+
+-spec reduce(redf(), any(), forms(), opts()) -> any().
+reduce(Fun, Acc, Forms, Opts) ->
+    Opts1 = parse_opts(Opts),
+    '_reduce'(Fun, Acc, Forms, Opts1).
+
+'_reduce'(_Fun, Acc, [], _Opts) ->
     Acc;
-%% reduce(Fun, Acc, [F| Fs]) when is_tuple(F) ->
-%%     NewAcc =
-%%         case is_form(F) of
-%%             true ->
-%%                 Fun(F, Acc);
-%%             false ->
-%%                 Acc
-%%         end,
-%%     reduce(Fun, reduce(Fun, NewAcc, tuple_to_list(F)), Fs);
-reduce(Fun, Acc, [F| Fs]) when is_tuple(F) ->
-    reduce(Fun, reduce(Fun, Fun(F, Acc), tuple_to_list(F)), Fs);
-reduce(Fun, Acc, [F| Fs]) when is_list(F) ->
-    reduce(Fun, reduce(Fun, Acc, F), Fs);
-reduce(Fun, Acc, [_F| Fs]) ->
-    reduce(Fun, Acc, Fs).
+'_reduce'(Fun, Acc, [F| Fs], #{forms_only := true} = Opts) when is_tuple(F) ->
+    NewAcc =
+        case is_form(F) of
+            true ->
+                Fun(F, Acc);
+            false ->
+                Acc
+        end,
+    '_reduce'(Fun,
+              '_reduce'(Fun, NewAcc, tuple_to_list(F), Opts),
+              Fs,
+              Opts);
+'_reduce'(Fun, Acc, [F| Fs], Opts) when is_tuple(F) ->
+    '_reduce'(Fun,
+              '_reduce'(Fun, Fun(F, Acc), tuple_to_list(F), Opts),
+              Fs,
+              Opts);
+'_reduce'(Fun, Acc, [F| Fs], Opts) when is_list(F) ->
+    '_reduce'(Fun, '_reduce'(Fun, Acc, F, Opts), Fs, Opts);
+'_reduce'(Fun, Acc, [_F| Fs], Opts) ->
+    '_reduce'(Fun, Acc, Fs, Opts).
 
 %%-------------------------------------------------------------------------
 %% @doc
@@ -401,6 +441,18 @@ from_abstract(Form) ->
 %% ========================================================================
 %%  Local functions
 %% ========================================================================
+
+parse_opts(Opts) ->
+    lists:zf(
+      fun(Opt) ->
+              case lists:member(Opt, ?OPTS) of
+                  true ->
+                      {true, {Opt, true}};
+                  false ->
+                      false
+              end
+      end,
+      Opts).
 
 %%-------------------------------------------------------------------------
 %% @doc
