@@ -43,7 +43,7 @@
     quote/1,
     unquote/1,
     map/2, map/3,
-    reduce/3,
+    reduce/3, reduce/4,
     mr/3,
     filter/2,
     any/2,
