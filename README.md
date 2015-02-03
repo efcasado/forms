@@ -101,3 +101,14 @@ forms:from_abstract({function,1,hello,1,
                           {cons,1,{var,1,'Name'},{nil,1}}]}]}]}).
 %% => "hello(Name) -> io:format(\"Hello, ~s!~n\", [Name])."
 ```
+
+### Examples
+
+Count how many times the anonymous variable (i.e., `'_'`) is used in the lists module.
+
+```erl
+forms:reduce(fun({var, _, '_'}, Count) -> Count + 1; (_, Count) -> Count end, 0, forms:read(lists)).
+%% => 57
+```
+
+Easy. Isn't it? :-)
