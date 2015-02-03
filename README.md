@@ -10,6 +10,19 @@ The `forms` module features a `read/1` function that can be used to fetch a modu
 `read/1` works with both Erlang source files (i.e., files with the `.erl` suffix) and Erlang binary files
 (i.e., files with the `.beam` suffix).
 
+The line below would read the forms from Erlang's internal `lists` module.
+
+```erl
+forms:read(lists).
+```
+
+Similarly, the following line would read the forms from a developer-provided `hello_world` source file.
+
+```erl
+forms:read("src/hello_world.erl").
+```
+
+
 > Note that in order to be able to fetch a beam file's AST the Erlang binary file must have been compiled using the
 > `debug_info` option (e.g., `erlc -o ebin +debug_info src/hello_world.erl`). Obviously, this is not a requirement
 > when reading the forms from a source file.
