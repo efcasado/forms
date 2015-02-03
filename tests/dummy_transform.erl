@@ -1,5 +1,7 @@
 -module(dummy_transform).
 
+-compile({parse_transform, forms_pt}).
+
 -export([parse_transform/2]).
 
 parse_transform(Forms, _Opts) ->
