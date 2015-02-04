@@ -51,7 +51,7 @@ read_from_source_error_test() ->
 
 read_from_binary_test() ->
     Forms = forms:read(dummy_module),
-    {attribute, 1, file, {SourceFile, 1}} = hd(Forms).
+    {attribute, 1, file, {"tests/dummy_module.erl", 1}} = hd(Forms).
 
 read_from_binary_error1_test() ->
     {module_not_found, i_do_not_exist} =
