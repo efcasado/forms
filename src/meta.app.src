@@ -1,0 +1,10 @@
+%% -*- mode: erlang -*-
+{application, meta,
+ [
+  {description, "A metaprogramming library for Erlang"},
+  {vsn, "0.1"},
+  {modules,
+   [
+    meta
+   ]}
+ ]}.
