@@ -54,3 +54,25 @@ Note that when operating on a module represented as a list of forms the
 transformations will not be effective until they are applied by means of a
 call to the `meta:apply_changes/{1, 2, 3}` function. This function accepts
 the same `permanent` and `force` options described above.
+
+### Examples
+
+The code below illustrates how to add a `hello/1` function to an arbitrary
+module.
+
+```erl
+HelloFunction = forms:function(hello, 
+                               fun(Name) ->
+                                   io:format("Hello, ~s!~n", [Name]) 
+                               end,
+                               []),
+meta:add_function(HelloFunction, _Export = true, my_awsome_module).                               
+```
+
+The example above assumes you have compiled the code using the `forms_pt` parse
+transform. If you cannot use the `forms_pt` parse transform, you can obtain the
+form of the `hello/1` function using `forms:to_abstract/1`.
+
+```erl
+HelloFunction = forms:to_abstract("hello(Name) -> io:format(\"Hello, ~s!~n\", [Name]).").
+```
