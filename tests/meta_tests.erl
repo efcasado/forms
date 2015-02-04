@@ -5,6 +5,10 @@
 -include_lib("eunit/include/eunit.hrl").
 
 
+%% ========================================================================
+%%  Unit tests
+%% ========================================================================
+
 module_name_test() ->
     Forms = forms:read(dummy_module),
     dummy_module = meta:module_name(Forms).
@@ -51,5 +55,18 @@ add_remove_exported_function_permanent_test() ->
 
     foo = dummy_module:foo(),
 
-    meta:rm_function(foo, 0, true, dummy_module),
+    meta:rm_function(foo, 0, true, dummy_module, [permanent]),
     {'EXIT', {undef, _}} = (catch dummy_module:foo()).
+
+rename_function_test() ->
+    FooFunction = forms:function(foo,
+                                 fun() -> foo end,
+                                 []),
+
+    Forms1 = meta:add_function(FooFunction, true, dummy_module, []),
+    foo = dummy_module:foo(),
+
+    Forms2 = meta:rename_function(foo, 0, bar, true, Forms1),
+    meta:apply_changes(Forms2),
+    {'EXIT', {undef, _}} = (catch dummy_module:foo()),
+    foo = dummy_module:bar().

@@ -50,6 +50,7 @@
     has_type/3,
     add_function/3, add_function/4,
     rm_function/4, rm_function/5,
+    rename_function/5, rename_function/6,
     rm_spec/3, rm_spec/4,
     is_function_exported/3,
     export_function/3,
@@ -237,6 +238,80 @@ rm_function(F, A, RmAll, Forms) ->
                 end,
                 Forms1,
                 CallingFunctions).
+
+%%-------------------------------------------------------------------------
+%% @doc
+%% Rename the specified function.
+%%
+%% If set to true, all references to the renamed function (e.g., function
+%% specifications, (static) function calls, etc.) will also be updated.
+%% @end
+%%-------------------------------------------------------------------------
+-spec rename_function(atom(), arity(), atom(), boolean(), meta_module(),
+                      list()) -> meta_module().
+rename_function(Name, Arity, NewName, RenameAll, Module, Opts)
+  when is_atom(Module) ->
+    Forms0 = load_forms(Module),
+    Forms1 = rename_function(Name, Arity, NewName, RenameAll, Forms0),
+    apply_changes(Module, Forms1, Opts).
+
+-spec rename_function(atom(), arity(), atom(), boolean(), meta_module())
+                     -> forms:forms().
+rename_function(Name, Arity, NewName, RenameAll, Module)
+  when is_atom(Module) ->
+    Forms0 = load_forms(Module),
+    Forms1 = rename_function(Name, Arity, NewName, RenameAll, Forms0),
+    apply_changes(Module, Forms1);
+rename_function(Name, Arity, NewName, false, Forms) ->
+    lists:map(
+      fun({function, Line, N, A, Clauses})
+         when N == Name andalso
+              A == Arity ->
+              {function, Line, NewName, Arity, Clauses};
+         (Other) ->
+              Other
+      end,
+      Forms);
+rename_function(Name, Arity, NewName, true, Forms) ->
+    Module = module_name(Forms),
+    forms:map(
+      fun({attribute, Line, export, ExpFuns0}) ->
+              %% Export
+              ExpFuns1 = lists:map(fun({N, A}) when N == Name andalso
+                                                    A == Arity ->
+                                           {NewName, Arity};
+                                      (Other) ->
+                                           Other
+                                   end,
+                                   ExpFuns0),
+              {attribute, Line, export, ExpFuns1};
+         ({function, Line, N, A, Clauses})
+            when N == Name andalso
+                 A == Arity ->
+              %% Function definition
+              {function, Line, NewName, Arity, Clauses};
+         ({attribute, Line, spec, {{N, A}, Clauses}})
+            when N == Name andalso
+                 A == Arity ->
+              %% Function specification
+              {attribute, Line, spec, {{NewName, Arity}, Clauses}};
+         ({call, L1, {atom, L2, N}, Args})
+            when N == Name andalso
+                 length(Args) == Arity ->
+              %% Call
+              {call, L1, {atom, L2, NewName}, Args};
+         ({call, L1, {remote, L2, {atom, L3, M}, {atom, L4, N}}, Args})
+            when M == Module andalso
+                 N == Name andalso
+                 length(Args) == Arity ->
+              %% Remote call
+              {call, L1,
+               {remote, L2, {atom, L3, M}, {atom, L4, NewName}},
+               Args};
+         (Other) ->
+              Other
+      end,
+      Forms).
 
 %%-------------------------------------------------------------------------
 %% @doc
