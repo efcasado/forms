@@ -200,13 +200,20 @@ add_function(Fun, false = _Exp, Mod) ->
 %%-------------------------------------------------------------------------
 -spec rm_function(atom(), integer(), boolean(), module(), list())
                  -> forms:forms().
-rm_function(F, A, RmAll, Mod, Opts) ->
-    OldForms = load_forms(Mod),
+rm_function(F, A, RmAll, Module, Opts)
+  when is_atom(Module) ->
+    OldForms = load_forms(Module),
     NewForms = rm_function(F, A, RmAll, OldForms),
-    apply_changes(Mod, NewForms, Opts).
+    apply_changes(Module, NewForms, Opts).
 
--spec rm_function(atom(), integer(), boolean(), forms:forms()) -> forms:forms().
-rm_function(F1, A1, false, Forms) ->
+-spec rm_function(atom(), integer(), boolean(), mod()) -> forms:forms().
+rm_function(F, A, RmAll, Module)
+  when is_atom(Module) ->
+    rm_function(F, A, RmAll, Module, []);
+rm_function(F, A, RmAll, Forms) ->
+    '_rm_function'(F, A, RmAll, Forms).
+
+'_rm_function'(F1, A1, false, Forms) ->
     Forms1 = unexport_function(F1, A1, Forms),
     Forms2 = rm_spec(F1, A1, Forms1),
     lists:foldr(fun({function, _, F2, A2, _}, Acc)
@@ -218,7 +225,7 @@ rm_function(F1, A1, false, Forms) ->
                       end,
                       [],
                       Forms2);
-rm_function(F1, A1, true, Forms) ->
+'_rm_function'(F1, A1, true, Forms) ->
     Forms1 = rm_function(F1, A1, false, Forms),
     CallingFunctions = calling_functions(F1, A1, Forms1),
     lists:foldl(fun({F2, A2}, AccForms) ->
@@ -647,7 +654,7 @@ apply_changes(Module, Forms, Opts) ->
         true ->
             case file:write_file(File, Bin) of
                 ok ->
-                    code:load_file(File);
+                    code:load_file(Module);
                 Error ->
                     Sticky andalso code:stick_dir(Dir),
                     throw(Error)

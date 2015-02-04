@@ -15,7 +15,7 @@ has_attr_true_test() ->
 has_attr_false_test() ->
     false = meta:has_attr(export, dummy_module).
 
-add_exported_function_test() ->
+add_exported_function_transient_test() ->
     FooFunction = forms:function(foo,
                                  fun() -> foo end,
                                  []),
@@ -29,3 +29,19 @@ add_exported_function_test() ->
     true = meta:has_attr(export, Forms),
 
     foo = dummy_module:foo().
+
+add_remove_exported_function_permanent_test() ->
+    FooFunction = forms:function(foo,
+                                 fun() -> foo end,
+                                 []),
+
+    false = meta:has_attr(export, dummy_module),
+
+    meta:add_function(FooFunction, true, dummy_module, [permanent]),
+
+    true = meta:has_attr(export, dummy_module),
+
+    foo = dummy_module:foo(),
+
+    meta:rm_function(foo, 0, true, dummy_module),
+    {'EXIT', {undef, _}} = (catch dummy_module:foo()).
