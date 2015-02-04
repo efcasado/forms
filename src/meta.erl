@@ -64,12 +64,12 @@
    ]).
 
 %% Type specifications
--type mod() :: module() | forms:forms().
--type abs_type()     :: forms:form().
--type abs_spec()     :: forms:form().
--type abs_record()   :: forms:form().
--type abs_function() :: forms:form().
--type type()         :: atom() | {'record', atom()}.
+-type meta_module()       :: module() | forms:forms().
+-type meta_type()         :: atom() | {'record', atom()}.
+-type meta_abs_type()     :: forms:form().
+-type meta_abs_spec()     :: forms:form().
+-type meta_abs_record()   :: forms:form().
+-type meta_abs_function() :: forms:form().
 
 %% ========================================================================
 %%  API
@@ -93,7 +93,7 @@ module_name([_F| Forms]) ->
 %% Check if the given module has the specified attribute.
 %% @end
 %%-------------------------------------------------------------------------
--spec has_attr(atom(), mod()) -> boolean().
+-spec has_attr(atom(), meta_module()) -> boolean().
 has_attr(Name, Module)
   when is_atom(Module) ->
     has_attr(Name, load_forms(Module));
@@ -107,7 +107,7 @@ has_attr(Name, Module) ->
 %% Check if the specified function exists in the provided module.
 %% @end
 %%-------------------------------------------------------------------------
--spec has_function(atom(), arity(), mod()) -> boolean().
+-spec has_function(atom(), arity(), meta_module()) -> boolean().
 has_function(Name, Arity, Module)
   when is_atom(Module) ->
     has_function(Name, Arity, load_forms(Module));
@@ -123,7 +123,7 @@ has_function(Name, Arity, [_| Forms]) ->
 %% Check if the specified record exists in the provided module.
 %% @end
 %%-------------------------------------------------------------------------
--spec has_record(atom(), mod()) -> boolean().
+-spec has_record(atom(), meta_module()) -> boolean().
 has_record(Name, Module)
   when is_atom(Module) ->
     has_record(Name, load_forms(Module));
@@ -139,7 +139,7 @@ has_record(Name, [_| Forms]) ->
 %% Check if the specified type exists in the provided module.
 %% @end
 %%-------------------------------------------------------------------------
--spec has_type(type(), arity(), mod()) -> boolean().
+-spec has_type(meta_type(), arity(), meta_module()) -> boolean().
 has_type(Name, Arity, Module)
   when is_atom(Module) ->
     has_type(Name, Arity, load_forms(Module));
@@ -166,14 +166,16 @@ has_type(Name, Arity, [_| Forms]) ->
 %%     permanent - The change will persist even after a node restart
 %% @end
 %%-------------------------------------------------------------------------
--spec add_function(abs_function(), boolean(), module(), list()) -> mod().
+-spec add_function(meta_abs_function(), boolean(), module(), list())
+                  -> meta_module().
 add_function(Function, Exp, Mod, Opts)
   when is_atom(Mod) ->
     OldForms = load_forms(Mod),
     NewForms = add_function(Function, Exp, OldForms),
     apply_changes(Mod, NewForms, Opts).
 
--spec add_function(abs_function(), boolean(), forms:forms()) -> forms:forms().
+-spec add_function(meta_abs_function(), boolean(), forms:forms())
+                  -> forms:forms().
 add_function({function, _, Name, Arity, _} =  Fun, true = _Exp, Mod) ->
     Mod1 = '_add_function'(Fun, Mod),
     export_function(Name, Arity, Mod1);
@@ -208,7 +210,7 @@ rm_function(F, A, RmAll, Module, Opts)
     NewForms = rm_function(F, A, RmAll, OldForms),
     apply_changes(Module, NewForms, Opts).
 
--spec rm_function(atom(), integer(), boolean(), mod()) -> forms:forms().
+-spec rm_function(atom(), integer(), boolean(), meta_module()) -> forms:forms().
 rm_function(F, A, RmAll, Module)
   when is_atom(Module) ->
     rm_function(F, A, RmAll, Module, []);
@@ -272,7 +274,7 @@ rm_spec(F1, A1, Forms) ->
 %% Check if the provided function is exported by the given module.
 %% @end
 %%-------------------------------------------------------------------------
--spec is_function_exported(atom(), arity(), mod()) -> boolean().
+-spec is_function_exported(atom(), arity(), meta_module()) -> boolean().
 is_function_exported(Name, Arity, Module)
   when is_atom(Module) ->
     is_function_exported(Name, Arity, load_forms(Module));
@@ -293,7 +295,7 @@ is_function_exported(Name, Arity, [_| Forms]) ->
 %% Add the function Name/Arity to the list of exported functions.
 %% @end
 %%-------------------------------------------------------------------------
--spec export_function(atom(), integer(), mod()) -> mod().
+-spec export_function(atom(), integer(), meta_module()) -> meta_module().
 export_function(Name, Arity, Module)
   when is_atom(Module) ->
     export_function(Name, Arity, load_forms(Module));
@@ -322,7 +324,7 @@ unexport_function(Name, Arity, Mod, Opts)
     NewForms = unexport_function(Name, Arity, OldForms),
     apply_changes(Mod, NewForms, Opts).
 
--spec unexport_function(atom(), integer(), forms:forms()) -> mod().
+-spec unexport_function(atom(), integer(), forms:forms()) -> meta_module().
 unexport_function(Name, Arity, Module) ->
     forms:map(fun({attribute, L, export, ExpFuns}) ->
                       ExpFuns1 = lists:delete({Name, Arity}, ExpFuns),
@@ -340,9 +342,9 @@ unexport_function(Name, Arity, Module) ->
 %% '{function_not_found, {Name, Arity}}' exception.
 %% @end
 %%-------------------------------------------------------------------------
--spec function(atom(), integer(), mod())
-              -> {abs_function(), list()} |
-                 {abs_function(), abs_spec(), list(), list()}.
+-spec function(atom(), integer(), meta_module())
+              -> {meta_abs_function(), list()} |
+                 {meta_abs_function(), meta_abs_spec(), list(), list()}.
 function(Name, Arity, Mod)
   when is_atom(Mod) ->
     function(Name, Arity, load_forms(Mod));
@@ -371,8 +373,8 @@ function(Name, Arity, Forms) ->
 %% {spec_not_found, {Name, Arity}} exception is thrown.
 %% @end
 %%-------------------------------------------------------------------------
--spec function_spec(atom(), arity(), mod())
-                   -> {abs_spec(), list()} | no_return().
+-spec function_spec(atom(), arity(), meta_module())
+                   -> {meta_abs_spec(), list()} | no_return().
 function_spec(Name, Arity, Module)
   when is_atom(Module) ->
     function_spec(Name, Arity, load_forms(Module));
@@ -391,7 +393,7 @@ function_spec(Name, Arity, [_| Forms]) ->
 %% function.
 %% @end
 %%-------------------------------------------------------------------------
--spec calling_functions(atom(), integer(), mod()) -> list().
+-spec calling_functions(atom(), integer(), meta_module()) -> list().
 calling_functions(Name, Arity, Mod)
   when is_atom(Mod) ->
     calling_functions(Name, Arity, load_forms(Mod));
@@ -456,7 +458,8 @@ calling_functions(F, A, Forms) ->
 %% Fetch the abstract code of the specified type.
 %% @end
 %%-------------------------------------------------------------------------
--spec type(atom(), arity(), mod()) -> {abs_type(), list({atom(), arity()})}.
+-spec type(atom(), arity(), meta_module())
+          -> {meta_abs_type(), list({atom(), arity()})}.
 type(Name, Arity, Module)
   when is_atom(Module) ->
     type(Name, Arity, load_forms(Module));
@@ -473,7 +476,7 @@ type(Name, Arity, [_| Forms]) ->
 %% Check if the provided type is exported by the given module.
 %% @end
 %%-------------------------------------------------------------------------
--spec is_type_exported({atom(), integer()}, mod()) -> boolean().
+-spec is_type_exported({atom(), integer()}, meta_module()) -> boolean().
 is_type_exported(Type, Module)
   when is_atom(Module) ->
     is_type_exported(Type, load_forms(Module));
@@ -495,7 +498,8 @@ is_type_exported(Type, [_| Forms]) ->
 %% Fetch the abstract code of the specified record.
 %% @end
 %%-------------------------------------------------------------------------
--spec record(atom(), mod()) -> {abs_record(), abs_type(), list(), list()}.
+-spec record(atom(), meta_module())
+            -> {meta_abs_record(), meta_abs_type(), list(), list()}.
 record(Name, Module)
   when is_atom(Module) ->
     record(Name, load_forms(Module));
@@ -672,11 +676,11 @@ load_forms(Module) ->
 %% manipulating it.
 %% @end
 %%-------------------------------------------------------------------------
--spec apply_changes(forms:forms(), list()) -> mod().
+-spec apply_changes(forms:forms(), list()) -> meta_module().
 apply_changes(Forms, Opts) ->
     apply_changes(module_name(Forms), Forms, Opts).
 
--spec apply_changes(module(), forms:forms(), list()) -> mod().
+-spec apply_changes(module(), forms:forms(), list()) -> meta_module().
 apply_changes(Module, Forms, Opts) ->
     File = module_file(Module),
     Dir = filename:dirname(File),
