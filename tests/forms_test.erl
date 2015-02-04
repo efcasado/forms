@@ -62,21 +62,17 @@ read_from_binary_error2_test() ->
         (catch forms:read(no_debug_info)).
 
 identity_transform1_test() ->
-    Forms = forms:read(dummy_module),
+    Forms = forms:read(dummy_module2),
     Forms = forms:map(fun(Form) -> Form end, Forms).
 
 identity_transform2_test() ->
-    Forms = forms:read(dummy_module),
+    Forms = forms:read(dummy_module2),
     Forms = forms:map(fun(Form) -> Form end, Forms, [forms_only]).
 
-count_vars_test() ->
-    Module = forms,
-    Forms = forms:read(Module),
-
-    6 = forms:reduce(
-          %% Count how many variables named
-          %% 'Module' are in this module.
-          fun({var, _Line, 'Module'}, Acc) ->
+reduce_test() ->
+    Forms = forms:read(dummy_module2),
+    7 = forms:reduce(
+          fun({var, _Line, '_'}, Acc) ->
                   Acc + 1;
              (_Form, Acc) ->
                   Acc
@@ -85,13 +81,9 @@ count_vars_test() ->
           Forms).
 
 mr_test() ->
-    Module = forms,
-    Forms = forms:read(Module),
-
-    {6, Forms} = forms:mr(
-                    %% Count how many variables named
-                    %% 'Module' are in this module.
-                    fun({var, _Line, 'Module'} = Form, Acc) ->
+    Forms = forms:read(dummy_module2),
+    {7, Forms} = forms:mr(
+                    fun({var, _Line, '_'} = Form, Acc) ->
                             {Acc + 1, Form};
                        (Form, Acc) ->
                             {Acc, Form}
@@ -99,20 +91,16 @@ mr_test() ->
                     0,
                     Forms).
 
-next1_test() ->
-    Module = forms,
-    Forms = forms:read(Module),
-
+reduce_next_test() ->
+    Forms = forms:read(dummy_module2),
     Forms = forms:map(
               fun(Form) ->
                       {next, Form}
               end,
               Forms).
 
-next2_test() ->
-    Module = forms,
-    Forms = forms:read(Module),
-
+mr_next_test() ->
+    Forms = forms:read(dummy_module2),
     {_Count, Forms} = forms:mr(
               fun(Form, Acc) ->
                       {Acc + 1, {next, Form}}
@@ -120,10 +108,8 @@ next2_test() ->
               0,
               Forms).
 
-next3_test() ->
-    Module = forms,
-    Forms = forms:read(Module),
-
+map_next_test() ->
+    Forms = forms:read(dummy_module2),
     Forms = forms:map(
               fun({call, _L, _MF, _A} = Form) ->
                       {next, Form};
@@ -132,18 +118,14 @@ next3_test() ->
               end,
               Forms).
 
-any1_test() ->
-    Module = forms,
-    Forms = forms:read(Module),
-
-    true = forms:any(fun({function, _, any, 2, _}) -> true;
+any_true_test() ->
+    Forms = forms:read(dummy_module2),
+    true = forms:any(fun({function, _, foo, 0, _}) -> true;
                         (_) -> false end,
                      Forms).
 
-any2_test() ->
-    Module = forms,
-    Forms = forms:read(Module),
-
+any_false_test() ->
+    Forms = forms:read(dummy_module2),
     false = forms:any(fun({function, _, doesnotexist, 2, _}) -> true;
                          (_) -> false end,
                       Forms).
