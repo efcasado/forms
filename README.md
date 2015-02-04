@@ -1,5 +1,7 @@
 meta
 ====
+[![Build Status](https://travis-ci.org/efcasado/meta.svg?branch=master)](https://travis-ci.org/efcasado/meta)
+
 
 A metaprogramming library for the Erlang programming language. `meta` can be used to
 transform Erlang modules not only at compile time, but also at run time.
