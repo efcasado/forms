@@ -4,6 +4,9 @@ forms
 
 A simple library that simplifies working with the Erlang abstract format.
 
+> If you are curious about what `forms` is capable of, I suggest you to check out
+> [meta](https://github.com/efcasado/meta).
+
 ### Fetching a module's forms
 
 The `forms` module features a `read/1` function that can be used to fetch a module's abstract syntax tree (AST).
