@@ -90,15 +90,22 @@
 %%-------------------------------------------------------------------------
 -spec read(atom() | iolist()) -> forms().
 read(Module) when is_atom(Module) ->
-    {ok, {Module, [{abstract_code, {raw_abstract_v1, Forms}}]}} =
-        beam_lib:chunks(code:which(Module), [abstract_code]),
-    Forms;
+    case beam_lib:chunks(code:which(Module), [abstract_code]) of
+        {ok, {Module, [{abstract_code, {raw_abstract_v1, Forms}}]}} ->
+            Forms;
+        {ok, {no_debug_info, _}} ->
+            throw({forms_not_found, Module});
+        {error, beam_lib, {file_error, _, enoent}} ->
+            throw({module_not_found, Module})
+    end;
 read(File) ->
     case epp:parse_file(File, []) of
         {ok, Forms} ->
             Forms;
         {ok, Forms, _Extra} ->
-            Forms
+            Forms;
+        {error, enoent} ->
+            throw({file_not_found, File})
     end.
 
 %%-------------------------------------------------------------------------

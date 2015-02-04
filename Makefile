@@ -62,6 +62,9 @@ $(BIN_DIR):
 ebin/%.beam: %.erl
 	erlc $(ERLC_OPTS) $<
 
+tests/no_debug_info.beam: no_debug_info.erl
+	erlc -o $(TST_DIR) $<
+
 tests/%.beam: %.erl
 	erlc $(TEST_ERLC_OPTS) $<
 

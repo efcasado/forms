@@ -40,31 +40,40 @@
 %%  Tests
 %% ========================================================================
 
-forms_from_source_test() ->
-    Module = forms,
-    CompileInfo = Module:module_info(compile),
-    SrcFile = proplists:get_value(source, CompileInfo),
-    Forms = forms:read(SrcFile),
+read_from_source_test() ->
+    SourceFile = "tests/dummy_module.erl",
+    Forms = forms:read(SourceFile),
+    {attribute, 1, file, {SourceFile, 1}} = hd(Forms).
 
-    {attribute, 1, file, {SrcFile, 1}} = hd(Forms).
+read_from_source_error_test() ->
+    {file_not_found, "i_do_not_exist.erl"} =
+        (catch forms:read("i_do_not_exist.erl")).
 
-forms_from_binary_test() ->
-    Module = forms,
-    Forms = forms:read(Module),
+read_from_binary_test() ->
+    Forms = forms:read(dummy_module),
+    {attribute, 1, file, {SourceFile, 1}} = hd(Forms).
 
-    {attribute, 1, file, {"src/forms.erl", 1}} = hd(Forms).
+read_from_binary_error1_test() ->
+    {module_not_found, i_do_not_exist} =
+        (catch forms:read(i_do_not_exist)).
 
-identity_transform_test() ->
-    Module = forms,
-    Forms = forms:read(Module),
+read_from_binary_error2_test() ->
+    {forms_not_found, no_debug_info} =
+        (catch forms:read(no_debug_info)).
 
+identity_transform1_test() ->
+    Forms = forms:read(dummy_module),
     Forms = forms:map(fun(Form) -> Form end, Forms).
+
+identity_transform2_test() ->
+    Forms = forms:read(dummy_module),
+    Forms = forms:map(fun(Form) -> Form end, Forms, [forms_only]).
 
 count_vars_test() ->
     Module = forms,
     Forms = forms:read(Module),
 
-    4 = forms:reduce(
+    6 = forms:reduce(
           %% Count how many variables named
           %% 'Module' are in this module.
           fun({var, _Line, 'Module'}, Acc) ->
@@ -79,7 +88,7 @@ mr_test() ->
     Module = forms,
     Forms = forms:read(Module),
 
-    {4, Forms} = forms:mr(
+    {6, Forms} = forms:mr(
                     %% Count how many variables named
                     %% 'Module' are in this module.
                     fun({var, _Line, 'Module'} = Form, Acc) ->

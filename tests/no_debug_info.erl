@@ -1,0 +1,1 @@
+-module(no_debug_info).
