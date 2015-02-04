@@ -51,6 +51,7 @@
     add_function/3, add_function/4,
     rm_function/4, rm_function/5,
     rm_spec/3, rm_spec/4,
+    is_function_exported/3,
     export_function/3,
     unexport_function/3, unexport_function/4,
     function/3,
@@ -267,6 +268,27 @@ rm_spec(F1, A1, Forms) ->
 
 %%-------------------------------------------------------------------------
 %% @doc
+%% Check if the provided function is exported by the given module.
+%% @end
+%%-------------------------------------------------------------------------
+-spec is_function_exported(atom(), arity(), mod()) -> boolean().
+is_function_exported(Name, Arity, Module)
+  when is_atom(Module) ->
+    is_function_exported(Name, Arity, load_forms(Module));
+is_function_exported(_Name, _Arity, []) ->
+    false;
+is_function_exported(Name, Arity, [{attribute, _, export, ExpFuns}| Forms]) ->
+    case lists:member({Name, Arity}, ExpFuns) of
+        true ->
+            true;
+        false ->
+            is_function_exported(Name, Arity, Forms)
+    end;
+is_function_exported(Name, Arity, [_| Forms]) ->
+    is_function_exported(Name, Arity, Forms).
+
+%%-------------------------------------------------------------------------
+%% @doc
 %% Add the function Name/Arity to the list of exported functions.
 %% @end
 %%-------------------------------------------------------------------------
@@ -447,7 +469,7 @@ type(Name, Arity, [_| Forms]) ->
 
 %%-------------------------------------------------------------------------
 %% @doc
-%% Check if the provided type is exported in the given module.
+%% Check if the provided type is exported by the given module.
 %% @end
 %%-------------------------------------------------------------------------
 -spec is_type_exported({atom(), integer()}, mod()) -> boolean().
