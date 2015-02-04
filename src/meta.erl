@@ -221,14 +221,14 @@ rm_function(F, A, RmAll, Forms) ->
     Forms1 = unexport_function(F1, A1, Forms),
     Forms2 = rm_spec(F1, A1, Forms1),
     lists:foldr(fun({function, _, F2, A2, _}, Acc)
-                            when F1 == F2 andalso
-                                 A1 == A2 ->
-                              Acc;
-                         (Other, Acc) ->
-                              [Other| Acc]
-                      end,
-                      [],
-                      Forms2);
+                      when F1 == F2 andalso
+                           A1 == A2 ->
+                        Acc;
+                   (Other, Acc) ->
+                        [Other| Acc]
+                end,
+                [],
+                Forms2);
 '_rm_function'(F1, A1, true, Forms) ->
     Forms1 = rm_function(F1, A1, false, Forms),
     CallingFunctions = calling_functions(F1, A1, Forms1),
