@@ -169,8 +169,7 @@ add_function(Function, Exp, Mod, Opts)
   when is_atom(Mod) ->
     OldForms = load_forms(Mod),
     NewForms = add_function(Function, Exp, OldForms),
-    ok = apply_changes(Mod, NewForms, Opts),
-    Mod.
+    apply_changes(Mod, NewForms, Opts).
 
 -spec add_function(abs_function(), boolean(), forms:forms()) -> forms:forms().
 add_function({function, _, Name, Arity, _} =  Fun, true = _Exp, Mod) ->
@@ -204,8 +203,7 @@ add_function(Fun, false = _Exp, Mod) ->
 rm_function(F, A, RmAll, Mod, Opts) ->
     OldForms = load_forms(Mod),
     NewForms = rm_function(F, A, RmAll, OldForms),
-    ok = apply_changes(Mod, NewForms, Opts),
-    Mod.
+    apply_changes(Mod, NewForms, Opts).
 
 -spec rm_function(atom(), integer(), boolean(), forms:forms()) -> forms:forms().
 rm_function(F1, A1, false, Forms) ->
@@ -246,8 +244,7 @@ rm_function(F1, A1, true, Forms) ->
 rm_spec(F, A, Mod, Opts) ->
     OldForms = load_forms(Mod),
     NewForms = rm_spec(F, A, OldForms),
-    ok = apply_changes(Mod, NewForms, Opts),
-    Mod.
+    apply_changes(Mod, NewForms, Opts).
 
 -spec rm_spec(atom(), integer(), forms:forms()) -> forms:forms().
 rm_spec(F1, A1, Forms) ->
@@ -293,8 +290,7 @@ unexport_function(Name, Arity, Mod, Opts)
   when is_atom(Mod) ->
     OldForms = load_forms(Mod),
     NewForms = unexport_function(Name, Arity, OldForms),
-    ok = apply_changes(Mod, NewForms, Opts),
-    Mod.
+    apply_changes(Mod, NewForms, Opts).
 
 -spec unexport_function(atom(), integer(), forms:forms()) -> mod().
 unexport_function(Name, Arity, Module) ->
@@ -657,8 +653,15 @@ apply_changes(Module, Forms, Opts) ->
                     throw(Error)
             end
     end,
+
     Sticky andalso code:stick_dir(Dir),
-    ok.
+
+    case permanent(Opts) of
+        true ->
+            Module;
+        false ->
+            Forms
+    end.
 
 forced(Opts) ->
     proplists:get_value(force, Opts, false).
