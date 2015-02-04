@@ -59,7 +59,8 @@
     calling_functions/3,
     type/3,
     is_type_exported/2,
-    record/2
+    record/2,
+    apply_changes/2, apply_changes/3
    ]).
 
 %% Type specifications
@@ -671,6 +672,10 @@ load_forms(Module) ->
 %% manipulating it.
 %% @end
 %%-------------------------------------------------------------------------
+-spec apply_changes(forms:forms(), list()) -> mod().
+apply_changes(Forms, Opts) ->
+    apply_changes(module_name(Forms), Forms, Opts).
+
 -spec apply_changes(module(), forms:forms(), list()) -> mod().
 apply_changes(Module, Forms, Opts) ->
     File = module_file(Module),
