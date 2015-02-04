@@ -71,6 +71,8 @@
 -type meta_abs_spec()     :: forms:form().
 -type meta_abs_record()   :: forms:form().
 -type meta_abs_function() :: forms:form().
+-type meta_opt()          :: 'force' | 'permanent'.
+-type meta_opts()         :: list(meta_opt()).
 
 %% ========================================================================
 %%  API
@@ -167,7 +169,7 @@ has_type(Name, Arity, [_| Forms]) ->
 %%     permanent - The change will persist even after a node restart
 %% @end
 %%-------------------------------------------------------------------------
--spec add_function(meta_abs_function(), boolean(), module(), list())
+-spec add_function(meta_abs_function(), boolean(), module(), meta_opts())
                   -> meta_module().
 add_function(Function, Exp, Mod, Opts)
   when is_atom(Mod) ->
@@ -203,7 +205,7 @@ add_function(Fun, false = _Exp, Mod) ->
 %%     permanent - The change will persist even after a node restart
 %% @end
 %%-------------------------------------------------------------------------
--spec rm_function(atom(), integer(), boolean(), module(), list())
+-spec rm_function(atom(), integer(), boolean(), module(), meta_opts())
                  -> forms:forms().
 rm_function(F, A, RmAll, Module, Opts)
   when is_atom(Module) ->
@@ -248,7 +250,7 @@ rm_function(F, A, RmAll, Forms) ->
 %% @end
 %%-------------------------------------------------------------------------
 -spec rename_function(atom(), arity(), atom(), boolean(), meta_module(),
-                      list()) -> meta_module().
+                      meta_opts()) -> meta_module().
 rename_function(Name, Arity, NewName, RenameAll, Module, Opts)
   when is_atom(Module) ->
     Forms0 = load_forms(Module),
@@ -326,7 +328,7 @@ rename_function(Name, Arity, NewName, true, Forms) ->
 %%     permanent - The change will persist even after a node restart
 %% @end
 %%-------------------------------------------------------------------------
--spec rm_spec(atom(), integer(), module(), list()) -> module().
+-spec rm_spec(atom(), integer(), module(), meta_opts()) -> meta_module().
 rm_spec(F, A, Mod, Opts) ->
     OldForms = load_forms(Mod),
     NewForms = rm_spec(F, A, OldForms),
@@ -392,7 +394,8 @@ export_function(Name, Arity, Module) ->
 %%     permanent - The change will persist even after a node restart
 %% @end
 %%-------------------------------------------------------------------------
--spec unexport_function(atom(), integer(), module(), list()) -> module().
+-spec unexport_function(atom(), integer(), module(), meta_opts())
+                       -> meta_module().
 unexport_function(Name, Arity, Mod, Opts)
   when is_atom(Mod) ->
     OldForms = load_forms(Mod),
@@ -755,11 +758,11 @@ load_forms(Module) ->
 apply_changes(Forms) ->
     apply_changes(Forms, []).
 
--spec apply_changes(forms:forms(), list()) -> meta_module().
+-spec apply_changes(forms:forms(), meta_opts()) -> meta_module().
 apply_changes(Forms, Opts) ->
     apply_changes(module_name(Forms), Forms, Opts).
 
--spec apply_changes(module(), forms:forms(), list()) -> meta_module().
+-spec apply_changes(module(), forms:forms(), meta_opts()) -> meta_module().
 apply_changes(Module, Forms, Opts) ->
     File = module_file(Module),
     Dir = filename:dirname(File),
