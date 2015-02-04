@@ -4,7 +4,7 @@ forms
 
 A simple library that simplifies working with the Erlang abstract format.
 
-> If you are curious about what `forms` is capable of, I suggest you to check out
+> If you are curious about what `forms` is capable of doing, I suggest you to check out
 > [meta](https://github.com/efcasado/meta).
 
 ### Fetching a module's forms
