@@ -61,12 +61,12 @@ The code below illustrates how to add a `hello/1` function to an arbitrary
 module.
 
 ```erl
-HelloFunction = forms:function(hello, 
+HelloFunction = forms:function(hello,
                                fun(Name) ->
-                                   io:format("Hello, ~s!~n", [Name]) 
+                                   io:format("Hello, ~s!~n", [Name])
                                end,
                                []),
-meta:add_function(HelloFunction, _Export = true, my_awsome_module).                               
+meta:add_function(HelloFunction, _Export = true, my_awsome_module).
 ```
 
 The example above assumes you have compiled the code using the `forms_pt` parse
