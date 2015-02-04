@@ -656,9 +656,22 @@ load_forms(Module) ->
 %% @doc
 %% Replace the specified modules implementation by the binary resulting
 %% of compiling the provided forms.
+%%
+%% This function accepts two options, which have to do with whether changes
+%% to a module's AST should be transient or permanent, and whether the
+%% AST of protected modules can be modified, or not.
+%% By default, changes are transient (i.e., they do not survive a node
+%% restart) and cannot be applied to protected modules. If one wants to
+%% change this behaviour, one has to set the 'permanent' and/or 'force'
+%% options, respectively.
+%%
+%% When changes are set to be permanent, this function returns the name of
+%% the module the changes have been applied to. When changes are transient,
+%% this function returns the AST of the module, so that one can keep on
+%% manipulating it.
 %% @end
 %%-------------------------------------------------------------------------
--spec apply_changes(module(), forms:forms(), list()) -> 'ok'.
+-spec apply_changes(module(), forms:forms(), list()) -> mod().
 apply_changes(Module, Forms, Opts) ->
     File = module_file(Module),
     Dir = filename:dirname(File),
