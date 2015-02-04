@@ -25,13 +25,16 @@ add_exported_function_transient_test() ->
     %% Alternatively, we could have used
     %% FooFunction = forms:to_abstract("foo() -> foo."),
 
-    false = meta:is_function_exported(foo, 0, dummy_module),
+    Forms0 = forms:read(dummy_module),
 
-    Forms = meta:add_function(FooFunction, true, dummy_module, []),
+    false = meta:is_function_exported(foo, 0, Forms0),
+
+    Forms1 = meta:add_function(FooFunction, true, Forms0),
+    meta:apply_changes(Forms1), %% transient
 
     %% The function has been added and its callable, but it has not
     %% beam injected to dummy_module's beam file.
-    true = meta:is_function_exported(foo, 0, Forms),
+    true = meta:is_function_exported(foo, 0, Forms1),
     foo = dummy_module:foo(),
     false = meta:is_function_exported(foo, 0, dummy_module).
 

@@ -60,7 +60,7 @@
     type/3,
     is_type_exported/2,
     record/2,
-    apply_changes/2, apply_changes/3
+    apply_changes/1, apply_changes/2, apply_changes/3
    ]).
 
 %% Type specifications
@@ -676,6 +676,10 @@ load_forms(Module) ->
 %% manipulating it.
 %% @end
 %%-------------------------------------------------------------------------
+-spec apply_changes(forms:forms()) -> meta_module().
+apply_changes(Forms) ->
+    apply_changes(Forms, []).
+
 -spec apply_changes(forms:forms(), list()) -> meta_module().
 apply_changes(Forms, Opts) ->
     apply_changes(module_name(Forms), Forms, Opts).
