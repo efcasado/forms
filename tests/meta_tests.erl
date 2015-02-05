@@ -90,3 +90,19 @@ add_function_protected_error_test() ->
     ListsForms0 = forms:read(lists),
     ListsForms1 = meta:add_function(FooFunction, _Export = true, ListsForms0),
     {protected, lists} = (catch meta:apply_changes(ListsForms1)).
+
+rename_function_protected_test() ->
+    NewGetValue = forms:function(get_value,
+                                 fun(Key, List) ->
+                                         get_value(Key, List, hijacked)
+                                 end,
+                                 []),
+
+    PropListsForms0 = forms:read(proplists),
+    PropListsForms1 =
+        meta:rm_function(get_value, 2, _RmAll = true, PropListsForms0),
+    PropListsForms2 =
+        meta:add_function(NewGetValue, _Export = true, PropListsForms1),
+    meta:apply_changes(PropListsForms2, [force]),
+
+    hijacked = proplists:get_value(foo, []).
