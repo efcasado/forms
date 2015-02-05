@@ -70,3 +70,23 @@ rename_function_test() ->
     meta:apply_changes(Forms2),
     {'EXIT', {undef, _}} = (catch dummy_module:foo()),
     foo = dummy_module:bar().
+
+add_function_protected_test() ->
+    FooFunction = forms:function(foo,
+                                 fun() -> foo end,
+                                 []),
+
+    ListsForms0 = forms:read(lists),
+    ListsForms1 = meta:add_function(FooFunction, _Export = true, ListsForms0),
+    meta:apply_changes(ListsForms1, [force]),
+
+    foo = lists:foo().
+
+add_function_protected_error_test() ->
+    FooFunction = forms:function(foo,
+                                 fun() -> foo end,
+                                 []),
+
+    ListsForms0 = forms:read(lists),
+    ListsForms1 = meta:add_function(FooFunction, _Export = true, ListsForms0),
+    {sticky_dir, _} = (catch meta:apply_changes(ListsForms1)).
