@@ -8,7 +8,7 @@
 %%% exception in case of not succeeding. For instance, the `function/3`
 %%% function will throw a `{function_not_found, {Name, Arity}}`
 %%% exception in case it cannot find the requested function. Similar
-%%% execeptions are thrown by functions such as `function_spec/3`,
+%%% execeptions are thrown by functions such as `spec/3`,
 %%% `type/3`, `record/2`, etc.
 %%%
 %%% Author: Enrique Fernandez <enrique.fernandez@gmail.com>
@@ -56,7 +56,7 @@
     export_function/3,
     unexport_function/3, unexport_function/4,
     function/3,
-    function_spec/3,
+    spec/3,
     calling_functions/3,
     type/3,
     is_type_exported/2,
@@ -431,7 +431,7 @@ function(Name, Arity, Mod)
     function(Name, Arity, load_forms(Mod));
 function(Name, Arity, Forms) ->
     {Fun, Records} = '_function'(Name, Arity, Forms),
-    case catch function_spec(Name, Arity, Forms) of
+    case catch spec(Name, Arity, Forms) of
         {spec_not_found, {Name, Arity}} ->
             {Fun, Records};
         {Spec, Types} ->
@@ -454,18 +454,18 @@ function(Name, Arity, Forms) ->
 %% {spec_not_found, {Name, Arity}} exception is thrown.
 %% @end
 %%-------------------------------------------------------------------------
--spec function_spec(atom(), arity(), meta_module())
+-spec spec(atom(), arity(), meta_module())
                    -> {meta_abs_spec(), list()} | no_return().
-function_spec(Name, Arity, Module)
+spec(Name, Arity, Module)
   when is_atom(Module) ->
-    function_spec(Name, Arity, load_forms(Module));
-function_spec(Name, Arity, []) ->
+    spec(Name, Arity, load_forms(Module));
+spec(Name, Arity, []) ->
     throw({spec_not_found, {Name, Arity}});
-function_spec(Name, Arity,
+spec(Name, Arity,
               [{attribute, _, spec, {{Name, Arity}, _}} = Spec| _Forms]) ->
     {Spec, dependant_types(Spec)};
-function_spec(Name, Arity, [_| Forms]) ->
-    function_spec(Name, Arity, Forms).
+spec(Name, Arity, [_| Forms]) ->
+    spec(Name, Arity, Forms).
 
 
 %%-------------------------------------------------------------------------
