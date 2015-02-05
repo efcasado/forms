@@ -55,6 +55,23 @@ transformations will not be effective until they are applied by means of a
 call to the `meta:apply_changes/{1, 2, 3}` function. This function accepts
 the same `permanent` and `force` options described above.
 
+### Error handling
+
+Most of the functions will throw an exception in case they face an error
+during their execution.
+
+| Function           | Exception                    | When                                  |
+| ------------------ | ---------------------------- | ------------------------------------- |
+| module_name/1      | invalid_module               | The provided forms do not contain a `-module(<module-name>).` attribute  |
+| function/3         | {function_not_found, {F, A}} | The specified function is not implemented by the provided module         |
+| spec/3             | {spec_not_found, {F, A}}     | The specified function specification is not found in the provided module |
+| type/3             | {type_not_found, {T, A}}     | The specified type is not defined in the provided module                 |
+| record/3           | {record_not_found, R}        | The provided module does not have a definition for the specified record  |
+| *                  | {cannot_load_forms, Module}  | The AST of the provided module cannot be loaded. Most likely because it has not been compiled using the `+debug_info` option |
+| *, apply_changes/3 | {sticky_dir, Dir}            | Attempting to apply changes on a protected module without setting the `force` option                                       |
+| *, apply_changes/3 | {compile_error, Module}      | There is an error in the AST one is attempting to compile                |
+| *, apply_changes/3 | Error                        | When setting the `permanent` option, if an error occurs when attempting to create the `.beam` file                              |
+
 ### Examples
 
 The code below illustrates how to add a `hello/1` function to an arbitrary
