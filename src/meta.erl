@@ -179,6 +179,9 @@ add_function(Function, Exp, Mod, Opts)
 
 -spec add_function(meta_abs_function(), boolean(), forms:forms())
                   -> forms:forms().
+add_function(Fun, Arity, Module)
+  when is_atom(Module) ->
+    add_function(Fun, Arity, Module, []);
 add_function({function, _, Name, Arity, _} =  Fun, true = _Exp, Mod) ->
     Mod1 = '_add_function'(Fun, Mod),
     export_function(Name, Arity, Mod1);
