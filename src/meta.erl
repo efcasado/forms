@@ -771,7 +771,7 @@ apply_changes(Module, Forms, Opts) ->
     Dir = filename:dirname(File),
 
     Sticky = code:is_sticky(Module),
-    Sticky andalso not forced(Opts) andalso throw({sticky_dir, Dir}),
+    Sticky andalso not forced(Opts) andalso throw({protected, Module}),
 
     Bin = compile_module(Module, Forms),
 

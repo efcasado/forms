@@ -68,7 +68,7 @@ during their execution.
 | type/3             | {type_not_found, {T, A}}     | The specified type is not defined in the provided module                 |
 | record/3           | {record_not_found, R}        | The provided module does not have a definition for the specified record  |
 | *                  | {cannot_load_forms, Module}  | The AST of the provided module cannot be loaded. Most likely because it has not been compiled using the `+debug_info` option |
-| *, apply_changes/3 | {sticky_dir, Dir}            | Attempting to apply changes on a protected module without setting the `force` option                                       |
+| *, apply_changes/3 | {protected, Module}          | Attempting to apply changes on a protected module without setting the `force` option                                       |
 | *, apply_changes/3 | {compile_error, Module}      | There is an error in the AST one is attempting to compile                |
 | *, apply_changes/3 | Error                        | When setting the `permanent` option, if an error occurs when attempting to create the `.beam` file                              |
 

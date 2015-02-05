@@ -89,4 +89,4 @@ add_function_protected_error_test() ->
 
     ListsForms0 = forms:read(lists),
     ListsForms1 = meta:add_function(FooFunction, _Export = true, ListsForms0),
-    {sticky_dir, _} = (catch meta:apply_changes(ListsForms1)).
+    {protected, lists} = (catch meta:apply_changes(ListsForms1)).
