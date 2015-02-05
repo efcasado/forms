@@ -51,6 +51,7 @@
     add_function/3, add_function/4,
     rm_function/4, rm_function/5,
     rename_function/5, rename_function/6,
+    replace_function/4, replace_function/5,
     rm_spec/3, rm_spec/4,
     is_function_exported/3,
     export_function/3,
@@ -317,6 +318,34 @@ rename_function(Name, Arity, NewName, true, Forms) ->
               Other
       end,
       Forms).
+
+%%-------------------------------------------------------------------------
+%% @doc
+%% Replace the specified function by the provided function.
+%%
+%% A wrong_arity exception is thrown if the artity of the provided
+%% function does not match the specified arity.
+%% @end
+%%-------------------------------------------------------------------------
+-spec replace_function(atom(), integer(), meta_abs_function(), meta_module(),
+                       meta_opts()) -> meta_module().
+replace_function(Name, Arity, Function, Module, Opts)
+  when is_atom(Module) ->
+    Forms0 = load_forms(Module),
+    Forms1 = replace_function(Name, Arity, Function, Forms0),
+    apply_changes(Module, Forms1, Opts).
+
+-spec replace_function(atom(), integer(), meta_abs_function(), meta_module())
+                      -> meta_module().
+replace_function(Name, Arity, Function, Module)
+  when is_atom(Module) ->
+    replace_function(Name, Arity, Function, Module, []);
+replace_function(_Name, Arity, {function, _, _, A, _}, _Forms)
+  when Arity =/= A ->
+    throw(wrong_arity);
+replace_function(Name, Arity, Function, Forms) ->
+    Forms1 = rm_function(Name, Arity, false, Forms),
+    add_function(Function, true, Forms1).
 
 %%-------------------------------------------------------------------------
 %% @doc

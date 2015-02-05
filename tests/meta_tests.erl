@@ -116,3 +116,33 @@ rename_function_protected_test() ->
     meta:apply_changes(PropListsForms0, [force]),
     none = proplists:lookup(foo, []).
 
+replace_function_protected_test() ->
+    NewLookUp = forms:function(lookup,
+                               fun(_Key, _List) ->
+                                       hijacked
+                               end,
+                               []),
+
+    PropListsForms0 = forms:read(proplists),
+
+    meta:replace_function(lookup, 2, NewLookUp, proplists, [force]),
+
+    hijacked = proplists:lookup(foo, []),
+
+    %% Clean-up
+    meta:apply_changes(PropListsForms0, [force]),
+    none = proplists:lookup(foo, []).
+
+
+replace_function_wrong_arity_test() ->
+    NewGetValue = forms:function(get_value,
+                                 fun(Key, List, Oops) ->
+                                         get_value(Key, List, hijacked)
+                                 end,
+                                 []),
+
+    wrong_arity = (catch meta:replace_function(get_value,
+                                               2,
+                                               NewGetValue,
+                                               proplists,
+                                               [force])).
