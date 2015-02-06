@@ -115,6 +115,11 @@ Forms1 = meta:rename_function(init, 1, '_init', false, Forms0).
 Forms2 = meta:add_function(WrapperFunction, false, Forms1).
 meta:apply_changes(Forms2).
 
+%% ...
+%% [meta] init/1 latency = 51
+%% [meta] init/1 latency = 6
+%% ...
+
 %% ... after some time we decide the disable the measurements ...
 
 %% Rollback
