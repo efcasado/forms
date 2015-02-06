@@ -96,7 +96,7 @@ form of the `hello/1` function using `forms:to_abstract/1`.
 HelloFunction = forms:to_abstract("hello(Name) -> io:format(\"Hello, ~s!~n\", [Name]).").
 ```
 
-##### (Temporary) function latency measurement in a live system
+##### (Temporary) latency measurement in a live system
 
 This example illustrates how to use `meta` to measure how long does it take to
 start a virtual node in a live Riak deployment.
