@@ -74,6 +74,8 @@ during their execution.
 
 ### Examples
 
+##### Function injection
+
 The code below illustrates how to add a `hello/1` function to an arbitrary
 module.
 
@@ -93,3 +95,31 @@ form of the `hello/1` function using `forms:to_abstract/1`.
 ```erl
 HelloFunction = forms:to_abstract("hello(Name) -> io:format(\"Hello, ~s!~n\", [Name]).").
 ```
+
+##### (Temporary) function latency measurement in a live system
+
+This example illustrates how to use `meta` to measure how long does it take to
+start a virtual node in a live Riak deployment.
+
+```erl
+%% Wrapper function
+WrapperFunction =
+    forms:to_abstract(
+        "init(X) ->"
+        "    {Time, Value} = timer:tc(fun() -> '_init'(X) end),"
+        "    io:format(user, \"[meta] init/1 latency = ~p~n\", [Time]),"
+        "    Value.").
+
+Forms0 = forms:read(riak_core_vnode).
+Forms1 = meta:rename_function(init, 1, '_init', false, Forms0).
+Forms2 = meta:add_function(WrapperFunction, false, Forms1).
+meta:apply_changes(Forms2).
+
+%% ... after some time we decide the disable the measurements ...
+
+%% Rollback
+meta:apply_changes(Forms0).
+```
+
+Note that the code above has been executed on the shell process running on
+a Riak node and no restart was required.
