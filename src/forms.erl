@@ -123,18 +123,35 @@ map(Fun, Forms) ->
 map(Fun, Forms, Opts)
   when is_list(Opts) ->
     Opts1 = parse_opts(Opts),
-    '_map'(Fun, [], Forms, maps:from_list(Opts1));
-map(Fun, Forms, Opts)
-  when is_map(Opts) ->
+    '_map'(Fun, [], Forms, Opts1);
+map(Fun, Forms, Opts) ->
     '_map'(Fun, [], Forms, Opts).
 
 '_map'(_Fun, Acc, [], _Opts) ->
     lists:reverse(Acc);
 '_map'(Fun, Acc, [F| Fs], Opts) when is_list(F) ->
     '_map'(Fun, [map(Fun, F, Opts)| Acc], Fs, Opts);
-'_map'(Fun, Acc, [F| Fs], #{forms_only := true} = Opts) ->
-    case is_form(F) of
+'_map'(Fun, Acc, [F| Fs], Opts) ->
+    case forms_only(Opts) of
         true ->
+            case is_form(F) of
+                true ->
+                    case Fun(F) of
+                        {next, T} ->
+                            '_map'(Fun, [T| Acc], Fs, Opts);
+                        T when is_tuple(T) ->
+                            '_map'(Fun,
+                                   [list_to_tuple(
+                                      map(Fun, tuple_to_list(T), Opts))| Acc],
+                                   Fs,
+                                   Opts);
+                        F1 ->
+                            '_map'(Fun, [F1| Acc], Fs, Opts)
+                    end;
+                false ->
+                    '_map'(Fun, [F| Acc], Fs, Opts)
+            end;
+        false ->
             case Fun(F) of
                 {next, T} ->
                     '_map'(Fun, [T| Acc], Fs, Opts);
@@ -143,24 +160,10 @@ map(Fun, Forms, Opts)
                            [list_to_tuple(
                               map(Fun, tuple_to_list(T), Opts))| Acc],
                            Fs,
-                  Opts);
+                           Opts);
                 F1 ->
                     '_map'(Fun, [F1| Acc], Fs, Opts)
-            end;
-        false ->
-            '_map'(Fun, [F| Acc], Fs, Opts)
-    end;
-'_map'(Fun, Acc, [F| Fs], Opts) ->
-    case Fun(F) of
-        {next, T} ->
-            '_map'(Fun, [T| Acc], Fs, Opts);
-        T when is_tuple(T) ->
-            '_map'(Fun,
-                   [list_to_tuple(map(Fun, tuple_to_list(T), Opts))| Acc],
-                   Fs,
-                  Opts);
-        F1 ->
-            '_map'(Fun, [F1| Acc], Fs, Opts)
+            end
     end.
 
 %%-------------------------------------------------------------------------
@@ -180,23 +183,26 @@ reduce(Fun, Acc, Forms, Opts) ->
 
 '_reduce'(_Fun, Acc, [], _Opts) ->
     Acc;
-'_reduce'(Fun, Acc, [F| Fs], #{forms_only := true} = Opts) when is_tuple(F) ->
-    NewAcc =
-        case is_form(F) of
-            true ->
-                Fun(F, Acc);
-            false ->
-                Acc
-        end,
-    '_reduce'(Fun,
-              '_reduce'(Fun, NewAcc, tuple_to_list(F), Opts),
-              Fs,
-              Opts);
 '_reduce'(Fun, Acc, [F| Fs], Opts) when is_tuple(F) ->
-    '_reduce'(Fun,
-              '_reduce'(Fun, Fun(F, Acc), tuple_to_list(F), Opts),
-              Fs,
-              Opts);
+    case forms_only(Opts) of
+        true ->
+            NewAcc =
+                case is_form(F) of
+                    true ->
+                        Fun(F, Acc);
+                    false ->
+                        Acc
+                end,
+            '_reduce'(Fun,
+                      '_reduce'(Fun, NewAcc, tuple_to_list(F), Opts),
+                      Fs,
+                      Opts);
+        false ->
+            '_reduce'(Fun,
+                      '_reduce'(Fun, Fun(F, Acc), tuple_to_list(F), Opts),
+                      Fs,
+                      Opts)
+    end;
 '_reduce'(Fun, Acc, [F| Fs], Opts) when is_list(F) ->
     '_reduce'(Fun, '_reduce'(Fun, Acc, F, Opts), Fs, Opts);
 '_reduce'(Fun, Acc, [_F| Fs], Opts) ->
@@ -460,6 +466,9 @@ parse_opts(Opts) ->
               end
       end,
       Opts).
+
+forms_only(Opts) ->
+    proplists:get_value(forms_only, Opts, false).
 
 %%-------------------------------------------------------------------------
 %% @doc
