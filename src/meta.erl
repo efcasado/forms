@@ -170,28 +170,28 @@ has_type(Name, Arity, [_| Forms]) ->
 %%     permanent - The change will persist even after a node restart
 %% @end
 %%-------------------------------------------------------------------------
+-spec add_function(meta_abs_function(), boolean(), forms:forms())
+                  -> meta_module().
+add_function(Function, Export, Module) ->
+    add_function(Function, Export, Module, _Opts = []).
+
 -spec add_function(meta_abs_function(), boolean(), module(), meta_opts())
                   -> meta_module().
 add_function(Function, Exp, Mod, Opts)
   when is_atom(Mod) ->
     OldForms = load_forms(Mod),
     NewForms = add_function(Function, Exp, OldForms),
-    apply_changes(Mod, NewForms, Opts).
+    apply_changes(Mod, NewForms, Opts);
+add_function(Function, Export, Forms, _Opts) ->
+    '_add_function'(Function, Export, Forms).
 
--spec add_function(meta_abs_function(), boolean(), forms:forms())
-                  -> forms:forms().
-add_function(Fun, Arity, Module)
-  when is_atom(Module) ->
-    add_function(Fun, Arity, Module, []);
-add_function({function, _, Name, Arity, _} =  Fun, true = _Exp, Mod) ->
-    Mod1 = '_add_function'(Fun, Mod),
-    export_function(Name, Arity, Mod1);
-add_function(Fun, false = _Exp, Mod) ->
-    '_add_function'(Fun, Mod).
-
-'_add_function'(Function, Module) ->
-    [{eof, _} = EOF| Forms0] = lists:reverse(Module),
-    lists:reverse([EOF, Function| Forms0]).
+'_add_function'({function, _, Name, Arity, _} =  Function, true, Forms) ->
+    [{eof, _} = EOF| Forms1] = lists:reverse(Forms),
+    Forms2 = lists:reverse([EOF, Function| Forms1]),
+    export_function(Name, Arity, Forms2);
+'_add_function'(Function, false, Forms) ->
+    [{eof, _} = EOF| Forms1] = lists:reverse(Forms),
+    lists:reverse([EOF, Function| Forms1]).
 
 %%-------------------------------------------------------------------------
 %% @doc
