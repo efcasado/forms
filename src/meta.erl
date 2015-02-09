@@ -448,6 +448,9 @@ unexport_function(Name, Arity, Module) ->
 %% @doc
 %% Fetch the abstract code of the requested function from the given module.
 %%
+%% Note that a function might depend on other forms such as records and
+%% type and function specifications.
+%%
 %% If the function is not found, it throws a
 %% '{function_not_found, {Name, Arity}}' exception.
 %% @end
@@ -615,13 +618,19 @@ record(Name, Module)
     record(Name, load_forms(Module));
 record(Name, Forms) ->
     {Record, RecordType} = '_record'(Name, Forms, {undefined, undefined}),
-    {Record, RecordType,
+    DependantRecords1 = dependant_records(Record),
+    DependantRecords2 = dependant_records(RecordType),
+    DependantRecords = lists:usort(DependantRecords1 ++ DependantRecords2),
+    {Record,
+     RecordType,
      dependant_types(RecordType),
-     dependant_records(RecordType)}.
+     DependantRecords}.
 
 %% The record type seems to go after the record specification, always.
-'_record'(Name, [], {_Record, _RecordType}) ->
+'_record'(Name, [], {undefined, undefined}) ->
     throw({record_not_found, Name});
+'_record'(_Name, [], Record) ->
+    Record;
 '_record'(Name, [{attribute, _, record, {Name, _}} = Record| Forms],
           {_, RecordType}) ->
     '_record'(Name, Forms, {Record, RecordType});

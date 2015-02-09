@@ -146,3 +146,19 @@ replace_function_wrong_arity_test() ->
                                                NewGetValue,
                                                proplists,
                                                [force])).
+
+fetch_simple_record_test() ->
+    {{attribute, _, record, {r3, _}}, undefined, _Types = [], _Records = []} =
+        meta:record(r3, dummy_module2).
+
+fetch_typed_record_test() ->
+    {{attribute, _, record, {r1, _}},
+     {attribute, _, type, {{record, r1}, _, _}},
+     _Types = [{t1, 0}],
+     _Records = []} = meta:record(r1, dummy_module2).
+
+fetch_nested_record_test() ->
+    {{attribute, _, record, {r2, _}},
+     undefined,
+     _Types = [],
+     _Records = [r1]} = meta:record(r2, dummy_module2).
