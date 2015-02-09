@@ -456,16 +456,7 @@ from_abstract(Form) ->
 %% ========================================================================
 
 parse_opts(Opts) ->
-    lists:zf(
-      fun(Opt) ->
-              case lists:member(Opt, ?OPTS) of
-                  true ->
-                      {true, {Opt, true}};
-                  false ->
-                      false
-              end
-      end,
-      Opts).
+    [ Opt || Opt <- Opts, lists:member(Opt, ?OPTS) ].
 
 forms_only(Opts) ->
     proplists:get_value(forms_only, Opts, false).
