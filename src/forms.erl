@@ -205,8 +205,18 @@ reduce(Fun, Acc, Forms, Opts) ->
     end;
 '_reduce'(Fun, Acc, [F| Fs], Opts) when is_list(F) ->
     '_reduce'(Fun, '_reduce'(Fun, Acc, F, Opts), Fs, Opts);
-'_reduce'(Fun, Acc, [_F| Fs], Opts) ->
-    '_reduce'(Fun, Acc, Fs, Opts).
+'_reduce'(Fun, Acc, [F| Fs], Opts) ->
+    case forms_only(Opts) of
+        true ->
+            case is_form(F) of
+                true ->
+                    '_reduce'(Fun, Fun(F, Acc), Fs, Opts);
+                false ->
+                    '_reduce'(Fun, Acc, Fs, Opts)
+            end;
+        false ->
+            '_reduce'(Fun, Fun(F, Acc), Fs, Opts)
+    end.
 
 %%-------------------------------------------------------------------------
 %% @doc
