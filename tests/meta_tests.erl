@@ -183,3 +183,9 @@ fetch_function_test() ->
      {attribute, _, spec, {{f3, 1}, _}},
      [{t0, 0}, {t2, 0}, {t3, 0}, {t4, 0}],
      [r0, r3]} = meta:function(f3, 1, dummy_module2).
+
+all_records_test() ->
+    true = lists:all(fun(R) ->
+                             lists:member(R, meta:records(dummy_module2))
+                     end,
+                     [r0, r1, r2, r3]).

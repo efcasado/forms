@@ -61,6 +61,7 @@
     calling_functions/3,
     type/3,
     is_type_exported/2,
+    records/1,
     record/2,
     apply_changes/1, apply_changes/2, apply_changes/3
    ]).
@@ -629,6 +630,21 @@ is_type_exported(Type, [{attribute, _, export_type, ExpTypes}| Forms]) ->
 is_type_exported(Type, [_| Forms]) ->
     is_type_exported(Type, Forms).
 
+
+%%-------------------------------------------------------------------------
+%% @doc
+%% Get a list featuring the name of all the records defined in the
+%% provided module.
+%% @end
+%%-------------------------------------------------------------------------
+-spec records(meta_module()) -> list().
+records(Module)
+  when is_atom(Module) ->
+    records(load_forms(Module));
+records(Forms) ->
+    lists:zf(fun({attribute, _, record, {Name, _}}) -> {true, Name};
+                (_) -> false end,
+             Forms).
 
 %%-------------------------------------------------------------------------
 %% @doc
