@@ -172,3 +172,8 @@ fetch_type_with_record_test() ->
     {{attribute, _, type, {t3, _, _}},
      [],
      [r3]} = meta:type(t3, 0, dummy_module2).
+
+fetch_nested_type_test() ->
+    {{attribute, _, type, {t4, _, _}},
+     [{t0, 0}, {t2, 0}, {t3, 0}],
+     [r0, r3]} = meta:type(t4, 0, dummy_module2).

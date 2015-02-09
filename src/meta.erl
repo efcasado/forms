@@ -493,8 +493,10 @@ spec(Name, Arity, Module)
     spec(Name, Arity, load_forms(Module));
 spec(Name, Arity, Forms) ->
     Spec = '_spec'(Name, Arity, Forms),
-    {DepTypes, DepRecords} = dependant_types(Spec),
-    {Spec, DepTypes, nested_records(DepRecords, Forms)}.
+    {DepTypes, DepRecords1} = dependant_types(Spec),
+    {Types, DepRecords2} = nested_types(DepTypes, Forms),
+    Records = nested_records(lists:usort(DepRecords1 ++ DepRecords2), Forms),
+    {Spec, Types, Records}.
 
 
 '_spec'(Name, Arity, []) ->
@@ -584,8 +586,10 @@ type(Name, Arity, Module)
     type(Name, Arity, load_forms(Module));
 type(Name, Arity, Forms) ->
     Type = '_type'(Name, Arity, Forms),
-    {Ts, Rs} = dependant_types(Type),
-    {Type, Ts, nested_records(Rs, Forms)}.
+    {Ts, Rs1} = dependant_types(Type),
+    {Types, Rs2} = nested_types(Ts, Forms),
+    Records = nested_records(lists:usort(Rs1 ++ Rs2), Forms),
+    {Type, Types, Records}.
 
 '_type'(Name, Arity, []) ->
     throw({type_not_found, {Name, Arity}});
@@ -633,14 +637,17 @@ record(Name, Forms) ->
     DepRecords1 = dependant_records(Record),
     DepRecords2 = dependant_records(RecordType),
     {DepTypes, DepRecords3} = dependant_types(RecordType),
+    {Types, DepRecords4} = nested_types(DepTypes, Forms),
 
     DepRecords = lists:usort(lists:append([DepRecords1,
                                            DepRecords2,
-                                           DepRecords3])),
+                                           DepRecords3,
+                                           DepRecords4])),
+    Records = nested_records(DepRecords, Forms),
     {Record,
      RecordType,
-     DepTypes,
-     nested_records(DepRecords, Forms)}.
+     Types,
+     Records}.
 
 %% The record type seems to go after the record specification, always.
 '_record'(Name, [], {undefined, undefined}) ->
@@ -769,6 +776,20 @@ dependant_types(Form) ->
           [Form]),
     {lists:usort(Ts), lists:usort(Rs)}.
 
+nested_types(Types, Module) ->
+    '_nested_types'(Types, {[], []}, Module).
+
+'_nested_types'([], {Ts, Rs} = _Acc, _Module) ->
+    {lists:usort(Ts), lists:usort(Rs)};
+'_nested_types'([{Name, Arity} = T| Types], {Ts, Rs} = Acc, Module) ->
+    case lists:member(T, Ts) of
+        true ->
+            '_nested_types'(Types, Acc, Module);
+        false ->
+            {_, X, Y} = type(Name, Arity, Module),
+            '_nested_types'(X ++ Types, {[T| Ts], Y ++ Rs}, Module)
+    end.
+
 %%-------------------------------------------------------------------------
 %% @doc
 %% Return a list of dependant records for a given form.
@@ -786,7 +807,7 @@ nested_records(Records, Module) ->
     '_nested_records'(Records, [], Module).
 
 '_nested_records'([], Acc, _Modul) ->
-    Acc;
+    lists:usort(Acc);
 '_nested_records'([R| Records], Acc, Module) ->
     case lists:member(R, Acc) of
         true ->
