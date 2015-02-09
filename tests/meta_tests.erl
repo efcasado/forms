@@ -161,4 +161,4 @@ fetch_nested_record_test() ->
     {{attribute, _, record, {r2, _}},
      undefined,
      _Types = [],
-     _Records = [r1]} = meta:record(r2, dummy_module2).
+     _Records = [r0, r1]} = meta:record(r2, dummy_module2).

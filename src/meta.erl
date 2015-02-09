@@ -618,13 +618,14 @@ record(Name, Module)
     record(Name, load_forms(Module));
 record(Name, Forms) ->
     {Record, RecordType} = '_record'(Name, Forms, {undefined, undefined}),
-    DependantRecords1 = dependant_records(Record),
-    DependantRecords2 = dependant_records(RecordType),
-    DependantRecords = lists:usort(DependantRecords1 ++ DependantRecords2),
+
+    DependantRecords =
+        lists:usort(dependant_records(Record) ++ dependant_records(RecordType)),
+
     {Record,
      RecordType,
      dependant_types(RecordType),
-     DependantRecords}.
+     nested_records(DependantRecords, Forms)}.
 
 %% The record type seems to go after the record specification, always.
 '_record'(Name, [], {undefined, undefined}) ->
@@ -761,6 +762,20 @@ dependant_records(Form) ->
                       (_Other, Acc) -> Acc end,
                    [],
                    [Form])).
+
+nested_records(Records, Module) ->
+    '_nested_records'(Records, [], Module).
+
+'_nested_records'([], Acc, _Modul) ->
+    Acc;
+'_nested_records'([R| Records], Acc, Module) ->
+    case lists:member(R, Acc) of
+        true ->
+            '_nested_records'(Records, Acc, Module);
+        false ->
+            {_, _, _, X} = record(R, Module),
+            '_nested_records'(X ++ Records, [R| Acc], Module)
+    end.
 
 %%-------------------------------------------------------------------------
 %% @doc
