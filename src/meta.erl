@@ -59,6 +59,7 @@
     function/3,
     spec/3,
     calling_functions/3,
+    types/1,
     type/3,
     is_type_exported/2,
     records/1,
@@ -583,6 +584,28 @@ calling_functions(F, A, Forms) ->
               false
       end,
       Forms).
+
+%%-------------------------------------------------------------------------
+%% @doc
+%% Get a list featuring the name and arity of all the types defined in the
+%% provided module.
+%% @end
+%%-------------------------------------------------------------------------
+-spec types(meta_module()) -> list().
+types(Module)
+  when is_atom(Module) ->
+    types(load_forms(Module));
+types(Forms) ->
+    lists:zf(fun({attribute, _, type, {{record, _}, _, _}}) ->
+                     %% Automatically added by Erlang's preprocessor when
+                     %% a "typed record" is found.
+                     false;
+                ({attribute, _, type, {Name, _, Args}}) ->
+                     {true, {Name, length(Args)}};
+                (_) ->
+                     false
+             end,
+             Forms).
 
 %%-------------------------------------------------------------------------
 %% @doc

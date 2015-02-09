@@ -189,3 +189,9 @@ all_records_test() ->
                              lists:member(R, meta:records(dummy_module2))
                      end,
                      [r0, r1, r2, r3]).
+
+all_types_test() ->
+    true = lists:all(fun(R) ->
+                             lists:member(R, meta:types(dummy_module2))
+                     end,
+                     [{t0, 0}, {t1, 0}, {t2, 0}, {t3, 0}, {t4, 0}]).
