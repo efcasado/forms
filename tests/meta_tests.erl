@@ -162,3 +162,13 @@ fetch_nested_record_test() ->
      undefined,
      _Types = [],
      _Records = [r0, r1]} = meta:record(r2, dummy_module2).
+
+fetch_spec_with_record_test() ->
+    {{attribute, _, spec, {{f2, 1}, _}},
+     [],
+     [r3]} = meta:spec(f2, 1, dummy_module2).
+
+fetch_type_with_record_test() ->
+    {{attribute, _, type, {t3, _, _}},
+     [],
+     [r3]} = meta:type(t3, 0, dummy_module2).

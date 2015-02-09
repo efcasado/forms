@@ -487,17 +487,23 @@ function(Name, Arity, Forms) ->
 %% @end
 %%-------------------------------------------------------------------------
 -spec spec(atom(), arity(), meta_module())
-                   -> {meta_abs_spec(), list()} | no_return().
+                   -> {meta_abs_spec(), list(), list()} | no_return().
 spec(Name, Arity, Module)
   when is_atom(Module) ->
     spec(Name, Arity, load_forms(Module));
-spec(Name, Arity, []) ->
+spec(Name, Arity, Forms) ->
+    Spec = '_spec'(Name, Arity, Forms),
+    {DepTypes, DepRecords} = dependant_types(Spec),
+    {Spec, DepTypes, nested_records(DepRecords, Forms)}.
+
+
+'_spec'(Name, Arity, []) ->
     throw({spec_not_found, {Name, Arity}});
-spec(Name, Arity,
+'_spec'(Name, Arity,
               [{attribute, _, spec, {{Name, Arity}, _}} = Spec| _Forms]) ->
-    {Spec, dependant_types(Spec)};
-spec(Name, Arity, [_| Forms]) ->
-    spec(Name, Arity, Forms).
+    Spec;
+'_spec'(Name, Arity, [_| Forms]) ->
+    '_spec'(Name, Arity, Forms).
 
 
 %%-------------------------------------------------------------------------
@@ -572,17 +578,22 @@ calling_functions(F, A, Forms) ->
 %% @end
 %%-------------------------------------------------------------------------
 -spec type(atom(), arity(), meta_module())
-          -> {meta_abs_type(), list({atom(), arity()})}.
+          -> {meta_abs_type(), list({atom(), arity()}), list()}.
 type(Name, Arity, Module)
   when is_atom(Module) ->
     type(Name, Arity, load_forms(Module));
-type(Name, Arity, []) ->
+type(Name, Arity, Forms) ->
+    Type = '_type'(Name, Arity, Forms),
+    {Ts, Rs} = dependant_types(Type),
+    {Type, Ts, nested_records(Rs, Forms)}.
+
+'_type'(Name, Arity, []) ->
     throw({type_not_found, {Name, Arity}});
-type(Name, Arity, [{attribute, _, type, {Name, _, Args}} = Type| _Forms])
+'_type'(Name, Arity, [{attribute, _, type, {Name, _, Args}} = Type| _Forms])
   when length(Args) == Arity ->
-    {Type, dependant_types(Type)};
-type(Name, Arity, [_| Forms]) ->
-    type(Name, Arity, Forms).
+    Type;
+'_type'(Name, Arity, [_| Forms]) ->
+    '_type'(Name, Arity, Forms).
 
 %%-------------------------------------------------------------------------
 %% @doc
@@ -619,13 +630,17 @@ record(Name, Module)
 record(Name, Forms) ->
     {Record, RecordType} = '_record'(Name, Forms, {undefined, undefined}),
 
-    DependantRecords =
-        lists:usort(dependant_records(Record) ++ dependant_records(RecordType)),
+    DepRecords1 = dependant_records(Record),
+    DepRecords2 = dependant_records(RecordType),
+    {DepTypes, DepRecords3} = dependant_types(RecordType),
 
+    DepRecords = lists:usort(lists:append([DepRecords1,
+                                           DepRecords2,
+                                           DepRecords3])),
     {Record,
      RecordType,
-     dependant_types(RecordType),
-     nested_records(DependantRecords, Forms)}.
+     DepTypes,
+     nested_records(DepRecords, Forms)}.
 
 %% The record type seems to go after the record specification, always.
 '_record'(Name, [], {undefined, undefined}) ->
@@ -734,21 +749,25 @@ is_builtin_type(_) ->
 %%-------------------------------------------------------------------------
 -spec dependant_types(forms:form()) -> list({atom(), arity()}).
 dependant_types(Form) ->
-    lists:usort(
-      forms:reduce(fun({type, _, union, _}, Acc) ->
-                           Acc;
-                      ({type, _, Name, Args}, Acc) ->
-                           case is_builtin_type(Name) of
-                               false ->
-                                   [{Name, length(Args)}| Acc];
-                               true ->
-                                   Acc
-                           end;
-                      (_, Acc) ->
-                           Acc
-                   end,
-                   [],
-                   [Form])).
+    {Ts, Rs} =
+        forms:reduce(
+          fun({type, _, union, _}, Acc) ->
+                  Acc;
+             ({type, _, record, [{atom, _, Record}]}, {Ts, Rs}= _Acc) ->
+                  {Ts, [Record| Rs]};
+             ({type, _, Name, Args}, {Ts, Rs} = Acc) ->
+                  case is_builtin_type(Name) of
+                      false ->
+                          {[{Name, length(Args)}| Ts], Rs};
+                      true ->
+                          Acc
+                  end;
+             (_, Acc) ->
+                  Acc
+          end,
+          {[], []},
+          [Form]),
+    {lists:usort(Ts), lists:usort(Rs)}.
 
 %%-------------------------------------------------------------------------
 %% @doc
