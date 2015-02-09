@@ -462,13 +462,22 @@ function(Name, Arity, Mod)
   when is_atom(Mod) ->
     function(Name, Arity, load_forms(Mod));
 function(Name, Arity, Forms) ->
-    {Fun, Records} = '_function'(Name, Arity, Forms),
-    case catch spec(Name, Arity, Forms) of
-        {spec_not_found, {Name, Arity}} ->
-            {Fun, Records};
-        {Spec, Types} ->
-            {Fun, Spec, Records, Types}
-    end.
+    {Fun, Records1} = '_function'(Name, Arity, Forms),
+    {Spec, Types, Records2} =
+        case catch spec(Name, Arity, Forms) of
+            {spec_not_found, {Name, Arity}} ->
+                {undefined, [], []};
+            Other ->
+                Other
+        end,
+    {AllTypes, Records3} = nested_types(Types, Forms),
+    Records = lists:usort(lists:append([Records1, Records2, Records3])),
+    AllRecords = nested_records(Records, Forms),
+    {Fun,
+     Spec,
+     AllTypes,
+     AllRecords
+    }.
 
 '_function'(Name, Arity, []) ->
     throw({function_not_found, {Name, Arity}});

@@ -1,6 +1,6 @@
 -module(dummy_module2).
 
--export([f1/2, f2/1]).
+-export([f1/2, f2/1, f3/1]).
 
 -type t1() :: 't1'.
 -type t2() :: undefined | t0().
@@ -21,4 +21,8 @@ f1(X, Y = #r3{}) ->
 
 -spec f2(#r3{}) -> #r3{}.
 f2(X = #r3{}) ->
+    X.
+
+-spec f3(t4()) -> t4().
+f3(X) ->
     X.
