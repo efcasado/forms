@@ -40,6 +40,7 @@
 %%%========================================================================
 -module(meta).
 
+-export([dependencies/2]).
 %% API
 -export(
    [
@@ -57,14 +58,14 @@
     export_function/3,
     unexport_function/3, unexport_function/4,
     functions/1,
-    function/3,
-    spec/3,
+    function/3, function/4,
+    spec/3, spec/4,
     calling_functions/3,
     types/1,
-    type/3,
+    type/3, type/4,
     is_type_exported/2,
     records/1,
-    record/2,
+    record/2, record/3,
     apply_changes/1, apply_changes/2, apply_changes/3
    ]).
 
@@ -77,6 +78,7 @@
 -type meta_abs_function() :: forms:form().
 -type meta_opt()          :: 'force' | 'permanent'.
 -type meta_opts()         :: list(meta_opt()).
+
 
 %% ========================================================================
 %%  API
@@ -477,33 +479,32 @@ functions(Forms) ->
 %% @end
 %%-------------------------------------------------------------------------
 -spec function(atom(), integer(), meta_module())
-              -> {meta_abs_function(), list()} |
-                 {meta_abs_function(), meta_abs_spec(), list(), list()}.
-function(Name, Arity, Mod)
-  when is_atom(Mod) ->
-    function(Name, Arity, load_forms(Mod));
-function(Name, Arity, Forms) ->
-    {Fun, Records1} = '_function'(Name, Arity, Forms),
-    {Spec, Types, Records2} =
-        case catch spec(Name, Arity, Forms) of
-            {spec_not_found, {Name, Arity}} ->
-                {undefined, [], []};
-            Other ->
-                Other
-        end,
-    {AllTypes, Records3} = nested_types(Types, Forms),
-    Records = lists:usort(lists:append([Records1, Records2, Records3])),
-    AllRecords = nested_records(Records, Forms),
-    {Fun,
+              -> {meta_abs_function(), 'undefined' | meta_abs_spec(), list()}.
+function(Name, Arity, Module) ->
+    function(Name, Arity, Module, []).
+
+-spec function(atom(), integer(), meta_module(), list())
+              -> {meta_abs_function(), 'undefined' | meta_abs_spec(), list()}.
+function(Name, Arity, Module, Opts)
+  when is_atom(Module) ->
+    function(Name, Arity, load_forms(Module), Opts);
+function(Name, Arity, Forms, Opts) ->
+    Function = '_function'(Name, Arity, Forms),
+    Spec = case catch spec(Name, Arity, Forms) of
+               {spec_not_found, {Name, Arity}} ->
+                   undefined;
+               {Form, _} ->
+                   Form
+           end,
+    Deps = handle_dependencies([Function, Spec], Forms, Opts),
+    {Function,
      Spec,
-     AllTypes,
-     AllRecords
-    }.
+     Deps}.
 
 '_function'(Name, Arity, []) ->
     throw({function_not_found, {Name, Arity}});
-'_function'(Name, Arity, [{function, _, Name, Arity, _} = Fun| _Forms]) ->
-    {Fun, dependant_records(Fun)};
+'_function'(Name, Arity, [{function, _, Name, Arity, _} = Function| _Forms]) ->
+    Function;
 '_function'(Name, Arity, [_Other| Forms] = _Mod) ->
     '_function'(Name, Arity, Forms).
 
@@ -518,15 +519,18 @@ function(Name, Arity, Forms) ->
 %%-------------------------------------------------------------------------
 -spec spec(atom(), arity(), meta_module())
                    -> {meta_abs_spec(), list(), list()} | no_return().
-spec(Name, Arity, Module)
+spec(Name, Arity, Module) ->
+    spec(Name, Arity, Module, []).
+
+-spec spec(atom(), arity(), meta_module(), list())
+                   -> {meta_abs_spec(), list(), list()} | no_return().
+spec(Name, Arity, Module, Opts)
   when is_atom(Module) ->
-    spec(Name, Arity, load_forms(Module));
-spec(Name, Arity, Forms) ->
+    spec(Name, Arity, load_forms(Module), Opts);
+spec(Name, Arity, Forms, Opts) ->
     Spec = '_spec'(Name, Arity, Forms),
-    {DepTypes, DepRecords1} = dependant_types(Spec),
-    {Types, DepRecords2} = nested_types(DepTypes, Forms),
-    Records = nested_records(lists:usort(DepRecords1 ++ DepRecords2), Forms),
-    {Spec, Types, Records}.
+    Deps = handle_dependencies(Spec, Forms, Opts),
+    {Spec, Deps}.
 
 
 '_spec'(Name, Arity, []) ->
@@ -632,16 +636,23 @@ types(Forms) ->
 %% @end
 %%-------------------------------------------------------------------------
 -spec type(atom(), arity(), meta_module())
-          -> {meta_abs_type(), list({atom(), arity()}), list()}.
-type(Name, Arity, Module)
+          -> {meta_abs_type(), list()}.
+type(Name, Arity, Module) ->
+    type(Name, Arity, Module, []).
+
+-spec type(atom(), arity(), meta_module(), list())
+          -> {meta_abs_type(), list()}.
+type(Name, Arity, Module, Opts)
   when is_atom(Module) ->
-    type(Name, Arity, load_forms(Module));
-type(Name, Arity, Forms) ->
+    type(Name, Arity, load_forms(Module), Opts);
+type(Name, Arity, Forms, Opts) ->
     Type = '_type'(Name, Arity, Forms),
-    {Ts, Rs1} = dependant_types(Type),
-    {Types, Rs2} = nested_types(Ts, Forms),
-    Records = nested_records(lists:usort(Rs1 ++ Rs2), Forms),
-    {Type, Types, Records}.
+    Deps = handle_dependencies(Type, Forms, Opts),
+    %% {Ts, _Rs1} = dependant_types(Type),
+    %% {Types, Rs2} = nested_types(Ts, Forms),
+    %% Records = nested_records(lists:usort(Rs1 ++ Rs2), Forms),
+    %% {Type, Types, Records}.
+    {Type, Deps}.
 
 '_type'(Name, Arity, []) ->
     throw({type_not_found, {Name, Arity}});
@@ -695,26 +706,35 @@ records(Forms) ->
 %%-------------------------------------------------------------------------
 -spec record(atom(), meta_module())
             -> {meta_abs_record(), meta_abs_type(), list(), list()}.
-record(Name, Module)
+record(Name, Module) ->
+    record(Name, Module, []).
+
+record(Name, Module, Opts)
   when is_atom(Module) ->
-    record(Name, load_forms(Module));
-record(Name, Forms) ->
+    record(Name, load_forms(Module), Opts);
+record(Name, Forms, Opts) ->
     {Record, RecordType} = '_record'(Name, Forms, {undefined, undefined}),
+    Deps = handle_dependencies([Record, RecordType], Forms, Opts),
 
-    DepRecords1 = dependant_records(Record),
-    DepRecords2 = dependant_records(RecordType),
-    {DepTypes, DepRecords3} = dependant_types(RecordType),
-    {Types, DepRecords4} = nested_types(DepTypes, Forms),
+    %% DepRecords1 = dependant_records(Record),
+    %% DepRecords2 = dependant_records(RecordType),
+    %% DepTypes = dependant_types(RecordType),
+    %% %% {DepTypes, DepRecords3} = dependant_types(RecordType),
+    %% %% {Types, DepRecords4} = nested_types(DepTypes, Forms),
 
-    DepRecords = lists:usort(lists:append([DepRecords1,
-                                           DepRecords2,
-                                           DepRecords3,
-                                           DepRecords4])),
-    Records = nested_records(DepRecords, Forms),
-    {Record,
-     RecordType,
-     Types,
-     Records}.
+    %% %% DepRecords = lists:usort(lists:append([DepRecords1,
+    %% %%                                        DepRecords2,
+    %% %%                                        DepRecords3,
+    %% %%                                        DepRecords4])),
+    %% %% Records = nested_records(DepRecords, Forms),
+    %% %% {Record,
+    %% %%  RecordType,
+    %% %%  Types,
+    %% %%  Records}.
+    %% {Record, RecordType, lists:usort(lists:append([DepRecords1,
+    %%                                                DepRecords2,
+    %%                                                DepTypes]))}.
+    {Record, RecordType, Deps}.
 
 %% The record type seems to go after the record specification, always.
 '_record'(Name, [], {undefined, undefined}) ->
@@ -823,39 +843,24 @@ is_builtin_type(_) ->
 %%-------------------------------------------------------------------------
 -spec dependant_types(forms:form()) -> list({atom(), arity()}).
 dependant_types(Form) ->
-    {Ts, Rs} =
-        forms:reduce(
-          fun({type, _, union, _}, Acc) ->
-                  Acc;
-             ({type, _, record, [{atom, _, Record}]}, {Ts, Rs}= _Acc) ->
-                  {Ts, [Record| Rs]};
-             ({type, _, Name, Args}, {Ts, Rs} = Acc) ->
-                  case is_builtin_type(Name) of
-                      false ->
-                          {[{Name, length(Args)}| Ts], Rs};
-                      true ->
-                          Acc
-                  end;
-             (_, Acc) ->
-                  Acc
-          end,
-          {[], []},
-          [Form]),
-    {lists:usort(Ts), lists:usort(Rs)}.
-
-nested_types(Types, Module) ->
-    '_nested_types'(Types, {[], []}, Module).
-
-'_nested_types'([], {Ts, Rs} = _Acc, _Module) ->
-    {lists:usort(Ts), lists:usort(Rs)};
-'_nested_types'([{Name, Arity} = T| Types], {Ts, Rs} = Acc, Module) ->
-    case lists:member(T, Ts) of
-        true ->
-            '_nested_types'(Types, Acc, Module);
-        false ->
-            {_, X, Y} = type(Name, Arity, Module),
-            '_nested_types'(X ++ Types, {[T| Ts], Y ++ Rs}, Module)
-    end.
+    lists:usort(
+      forms:reduce(
+        fun({type, _, union, _}, Acc) ->
+                Acc;
+           ({type, _, record, [{atom, _, _}]}, Acc) ->
+                Acc;
+           ({type, _, Name, Args}, Acc) ->
+                case is_builtin_type(Name) of
+                    false ->
+                        [{Name, length(Args)}| Acc];
+                    true ->
+                        Acc
+                end;
+           (_, Acc) ->
+                Acc
+        end,
+        [],
+        [Form])).
 
 %%-------------------------------------------------------------------------
 %% @doc
@@ -865,24 +870,86 @@ nested_types(Types, Module) ->
 -spec dependant_records(forms:form()) -> list(atom()).
 dependant_records(Form) ->
     lists:usort(
-      forms:reduce(fun({record, _, Name, _}, Acc) -> [Name| Acc];
-                      (_Other, Acc) -> Acc end,
+      forms:reduce(fun({record, _, Name, _}, Acc) ->
+                           [Name| Acc];
+                      ({type, _, record, [{atom, _, Record}]}, Acc) ->
+                           [Record| Acc];
+                      (_Other, Acc) ->
+                           Acc
+                   end,
                    [],
                    [Form])).
 
-nested_records(Records, Module) ->
-    '_nested_records'(Records, [], Module).
+handle_dependencies(Forms, ModuleForms, Opts)
+  when is_list(Forms) ->
+    DirectDeps =
+        lists:usort(
+          lists:foldl(fun(Form, Acc) ->
+                              lists:append([
+                                            Acc,
+                                            dependant_types(Form),
+                                            dependant_records(Form)
+                                           ])
+                      end,
+                      [],
+                      Forms)
+         ),
+    '_handle_dependencies'(DirectDeps, ModuleForms, Opts);
+handle_dependencies(Form, ModuleForms, Opts) ->
+    DirectDeps = dependant_types(Form) ++ dependant_records(Form),
+    '_handle_dependencies'(DirectDeps, ModuleForms, Opts).
 
-'_nested_records'([], Acc, _Modul) ->
-    lists:usort(Acc);
-'_nested_records'([R| Records], Acc, Module) ->
-    case lists:member(R, Acc) of
+'_handle_dependencies'(Deps0, Forms, Opts) ->
+    Deps1 = case direct_only(Opts) of
+                true ->
+                    Deps0;
+                false ->
+                    X = lists:usort(
+                          lists:flatten([ dependencies(D, Forms)
+                                          || D <- Deps0 ])),
+                    %% TODO: Linearise
+                    [ D || {D, _} <- X ]
+            end,
+    case reference(Opts) of
         true ->
-            '_nested_records'(Records, Acc, Module);
+            Deps1;
         false ->
-            {_, _, _, X} = record(R, Module),
-            '_nested_records'(X ++ Records, [R| Acc], Module)
+            [ case D of
+                  {Name, Arity} ->
+                      {T, _} = type(Name, Arity, Forms),
+                      T;
+                  Record ->
+                      {R, RT, _} = record(Record, Forms),
+                      {R, RT}
+              end || D <- Deps1 ]
     end.
+
+direct_only(Opts) ->
+    proplists:get_value(direct_only, Opts, false).
+
+reference(Opts) ->
+    proplists:get_value(reference, Opts, false).
+
+dependencies(FormRef, Forms) ->
+    lists:usort('_dependencies'(FormRef, [], Forms)).
+
+'_dependencies'({Name, Arity} = Type, Acc, Forms) ->
+    {_, Deps} = type(Name, Arity, Forms, [direct_only, reference]),
+    NewAcc1 = lists:foldl(fun(FormRef, NewAcc0) ->
+                                  dependencies(FormRef, Forms) ++ NewAcc0
+                          end,
+                          Acc,
+                          Deps),
+    [{Type, Deps}| NewAcc1];
+'_dependencies'(Record, Acc, Forms)
+  when is_atom(Record) ->
+    {_, _, Deps} = record(Record, Forms, [direct_only, reference]),
+    NewAcc1 = lists:foldl(fun(FormRef, NewAcc0) ->
+                                  dependencies(FormRef, Forms) ++ NewAcc0
+                          end,
+                          Acc,
+                          Deps),
+    [{Record, Deps}| NewAcc1].
 
 %%-------------------------------------------------------------------------
 %% @doc
