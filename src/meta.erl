@@ -881,10 +881,35 @@ handle_dependencies(Form, ModuleForms, Opts) ->
                 true ->
                     Deps0;
                 false ->
-                    AllDeps = lists:usort(
+                    AllDeps0 = lists:usort(
                           lists:flatten([ dependencies(D, Forms)
                                           || D <- Deps0 ])),
-                    sort(AllDeps)
+                    %% Filter out all types featuring as dependencies,
+                    %% since we are not linearising them
+                    AllDeps1 = lists:foldl(fun({I, Ds0}, Acc) ->
+                                                   Ds1 = lists:filter(
+                                                             fun({_,_}) -> false;
+                                                                (_) -> true
+                                                             end,
+                                                             Ds0),
+                                                   [{I, Ds1}| Acc]
+                                           end,
+                                           [],
+                                           AllDeps0),
+
+                    {AllTs, AllRs} =
+                        lists:foldl(fun({{_, _} = T, _}, {Ts, Rs}) ->
+                                            %% A type's dependencies can be
+                                            %% ignored, since we are not
+                                            %% linearising them.
+                                            {[T| Ts], Rs};
+                                       (R, {Ts, Rs}) -> {Ts, [R| Rs]} end,
+                                    {[], []},
+                                    AllDeps1),
+                    %% All type definitions are place after all record
+                    %% definitions in order to prevent the Erlang compiler
+                    %% from complaining about records not being defined.
+                    sort(AllRs) ++ AllTs
             end,
     case reference(Opts) of
         true ->
@@ -901,7 +926,10 @@ handle_dependencies(Form, ModuleForms, Opts) ->
     end.
 
 sort(List) ->
-    %% TODO: Cycles cause infinite loops
+    %% Cycles cause infinite loops. Note, however, that we do
+    %% not have to worry about cycles, since we are only sorting
+    %% "records" and Erlang does not allow cycles in record
+    %% definitions.
     List1 = [K || {K, _V} <- List],
     '_sort'(List1, [], List).
 
