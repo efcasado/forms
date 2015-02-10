@@ -648,10 +648,6 @@ type(Name, Arity, Module, Opts)
 type(Name, Arity, Forms, Opts) ->
     Type = '_type'(Name, Arity, Forms),
     Deps = handle_dependencies(Type, Forms, Opts),
-    %% {Ts, _Rs1} = dependant_types(Type),
-    %% {Types, Rs2} = nested_types(Ts, Forms),
-    %% Records = nested_records(lists:usort(Rs1 ++ Rs2), Forms),
-    %% {Type, Types, Records}.
     {Type, Deps}.
 
 '_type'(Name, Arity, []) ->
@@ -715,25 +711,6 @@ record(Name, Module, Opts)
 record(Name, Forms, Opts) ->
     {Record, RecordType} = '_record'(Name, Forms, {undefined, undefined}),
     Deps = handle_dependencies([Record, RecordType], Forms, Opts),
-
-    %% DepRecords1 = dependant_records(Record),
-    %% DepRecords2 = dependant_records(RecordType),
-    %% DepTypes = dependant_types(RecordType),
-    %% %% {DepTypes, DepRecords3} = dependant_types(RecordType),
-    %% %% {Types, DepRecords4} = nested_types(DepTypes, Forms),
-
-    %% %% DepRecords = lists:usort(lists:append([DepRecords1,
-    %% %%                                        DepRecords2,
-    %% %%                                        DepRecords3,
-    %% %%                                        DepRecords4])),
-    %% %% Records = nested_records(DepRecords, Forms),
-    %% %% {Record,
-    %% %%  RecordType,
-    %% %%  Types,
-    %% %%  Records}.
-    %% {Record, RecordType, lists:usort(lists:append([DepRecords1,
-    %%                                                DepRecords2,
-    %%                                                DepTypes]))}.
     {Record, RecordType, Deps}.
 
 %% The record type seems to go after the record specification, always.
