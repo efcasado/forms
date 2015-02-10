@@ -904,11 +904,10 @@ handle_dependencies(Form, ModuleForms, Opts) ->
                 true ->
                     Deps0;
                 false ->
-                    X = lists:usort(
+                    AllDeps = lists:usort(
                           lists:flatten([ dependencies(D, Forms)
                                           || D <- Deps0 ])),
-                    %% TODO: Linearise
-                    [ D || {D, _} <- X ]
+                    sort(AllDeps)
             end,
     case reference(Opts) of
         true ->
@@ -923,6 +922,22 @@ handle_dependencies(Form, ModuleForms, Opts) ->
                       {R, RT}
               end || D <- Deps1 ]
     end.
+
+sort(List) ->
+    %% TODO: Cycles cause infinite loops
+    List1 = [K || {K, _V} <- List],
+    '_sort'(List1, [], List).
+
+'_sort'([], SortedList, _Deps) ->
+    SortedList;
+'_sort'([H| Tail], Acc, Deps) ->
+    NewAcc0 = [H| lists:delete(H, Acc)],
+    NewAcc = lists:foldl(fun(X, NewAcc1) ->
+                                 '_sort'([X], NewAcc1, Deps)
+                         end,
+                         NewAcc0,
+                         proplists:get_value(H, Deps, [])),
+    '_sort'(Tail, NewAcc, Deps).
 
 direct_only(Opts) ->
     proplists:get_value(direct_only, Opts, false).
