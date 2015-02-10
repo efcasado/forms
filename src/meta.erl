@@ -56,6 +56,7 @@
     is_function_exported/3,
     export_function/3,
     unexport_function/3, unexport_function/4,
+    functions/1,
     function/3,
     spec/3,
     calling_functions/3,
@@ -445,6 +446,24 @@ unexport_function(Name, Arity, Module) ->
                       Other
               end,
               Module).
+
+%%-------------------------------------------------------------------------
+%% @doc
+%% Get a list featuring the name and arity of all the functions defined in
+%% the provided module.
+%% @end
+%%-------------------------------------------------------------------------
+-spec functions(meta_module()) -> list().
+functions(Module)
+  when is_atom(Module) ->
+    functions(load_forms(Module));
+functions(Forms) ->
+    lists:zf(fun({function, _, Name, Arity, _}) ->
+                     {true, {Name, Arity}};
+                (_) ->
+                     false
+             end,
+             Forms).
 
 %%-------------------------------------------------------------------------
 %% @doc

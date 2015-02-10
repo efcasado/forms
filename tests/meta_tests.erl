@@ -195,3 +195,9 @@ all_types_test() ->
                              lists:member(R, meta:types(dummy_module2))
                      end,
                      [{t0, 0}, {t1, 0}, {t2, 0}, {t3, 0}, {t4, 0}]).
+
+all_functions_test() ->
+    true = lists:all(fun(R) ->
+                             lists:member(R, meta:functions(dummy_module2))
+                     end,
+                     [{f1, 2}, {f2, 1}, {f3, 1}]).
