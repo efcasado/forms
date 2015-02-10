@@ -481,7 +481,7 @@ functions(Forms) ->
 -spec function(atom(), integer(), meta_module())
               -> {meta_abs_function(), 'undefined' | meta_abs_spec(), list()}.
 function(Name, Arity, Module) ->
-    function(Name, Arity, Module, []).
+    function(Name, Arity, Module, [direct_only, reference]).
 
 -spec function(atom(), integer(), meta_module(), list())
               -> {meta_abs_function(), 'undefined' | meta_abs_spec(), list()}.
@@ -520,7 +520,7 @@ function(Name, Arity, Forms, Opts) ->
 -spec spec(atom(), arity(), meta_module())
                    -> {meta_abs_spec(), list(), list()} | no_return().
 spec(Name, Arity, Module) ->
-    spec(Name, Arity, Module, []).
+    spec(Name, Arity, Module, [direct_only, reference]).
 
 -spec spec(atom(), arity(), meta_module(), list())
                    -> {meta_abs_spec(), list(), list()} | no_return().
@@ -638,7 +638,7 @@ types(Forms) ->
 -spec type(atom(), arity(), meta_module())
           -> {meta_abs_type(), list()}.
 type(Name, Arity, Module) ->
-    type(Name, Arity, Module, []).
+    type(Name, Arity, Module, [direct_only, reference]).
 
 -spec type(atom(), arity(), meta_module(), list())
           -> {meta_abs_type(), list()}.
@@ -707,7 +707,7 @@ records(Forms) ->
 -spec record(atom(), meta_module())
             -> {meta_abs_record(), meta_abs_type(), list(), list()}.
 record(Name, Module) ->
-    record(Name, Module, []).
+    record(Name, Module, [direct_only, reference]).
 
 record(Name, Module, Opts)
   when is_atom(Module) ->
