@@ -918,14 +918,22 @@ handle_dependencies(Form, ModuleForms, Opts) ->
         true ->
             Deps1;
         false ->
-            [ case D of
-                  {Name, Arity} ->
-                      {T, _} = type(Name, Arity, Forms),
-                      T;
-                  Record ->
-                      {R, RT, _} = record(Record, Forms),
-                      {R, RT}
-              end || D <- Deps1 ]
+            lists:flatmap(fun({Name, Arity}) ->
+                                  {T, _} = type(Name, Arity, Forms),
+                                  [T];
+                             (Record) ->
+                                  {R, RT, _} = record(Record, Forms),
+                                  [R, RT]
+                          end,
+                          Deps1)
+            %% [ case D of
+            %%       {Name, Arity} ->
+            %%           {T, _} = type(Name, Arity, Forms),
+            %%           T;
+            %%       Record ->
+            %%           {R, RT, _} = record(Record, Forms),
+            %%           {R, RT}
+            %%   end || D <- Deps1 ]
     end.
 
 sort(List) ->
