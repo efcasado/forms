@@ -909,10 +909,10 @@ handle_dependencies(Form, ModuleForms, Opts) ->
                                        (R, {Ts, Rs}) -> {Ts, [R| Rs]} end,
                                     {[], []},
                                     AllDeps1),
-                    %% All type definitions are place after all record
+                    %% All type definitions are placed after all record
                     %% definitions in order to prevent the Erlang compiler
                     %% from complaining about records not being defined.
-                    sort(AllRs) ++ AllTs
+                    AllTs ++ sort(AllRs)
             end,
     case reference(Opts) of
         true ->
