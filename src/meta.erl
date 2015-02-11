@@ -59,6 +59,7 @@
     unexport_function/3, unexport_function/4,
     functions/1,
     function/3, function/4,
+    specs/1,
     spec/3, spec/4,
     calling_functions/3,
     types/1,
@@ -506,6 +507,24 @@ function(Name, Arity, Forms, Opts) ->
     Function;
 '_function'(Name, Arity, [_Other| Forms] = _Mod) ->
     '_function'(Name, Arity, Forms).
+
+%%-------------------------------------------------------------------------
+%% @doc
+%% Get a list featuring the name and arity of all the function
+%% specifications defined in the provided module.
+%% @end
+%%-------------------------------------------------------------------------
+-spec specs(meta_module()) -> list().
+specs(Module)
+  when is_atom(Module) ->
+    specs(load_forms(Module));
+specs(Forms) ->
+    lists:zf(fun({attribute, _, spec, {{Name, Arity}, _}}) ->
+                     {true, {Name, Arity}};
+                (_) ->
+                     false
+             end,
+             Forms).
 
 %%-------------------------------------------------------------------------
 %% @doc
