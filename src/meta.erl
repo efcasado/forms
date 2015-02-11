@@ -192,14 +192,10 @@ add_function(Function, Export, Forms, _Opts) ->
     '_add_function'(Function, Export, Forms).
 
 '_add_function'({function, _, Name, Arity, _} =  Function, true, Forms) ->
-    %% [{eof, _} = EOF| Forms1] = lists:reverse(Forms),
-    %% Forms2 = lists:reverse([EOF, Function| Forms1]),
     Forms2 = add_forms([Function], Forms),
     export_function(Name, Arity, Forms2);
 '_add_function'(Function, false, Forms) ->
     add_forms([Function], Forms).
-    %% [{eof, _} = EOF| Forms1] = lists:reverse(Forms),
-    %% lists:reverse([EOF, Function| Forms1]).
 
 %%-------------------------------------------------------------------------
 %% @doc
@@ -926,14 +922,6 @@ handle_dependencies(Form, ModuleForms, Opts) ->
                                   [R, RT]
                           end,
                           Deps1)
-            %% [ case D of
-            %%       {Name, Arity} ->
-            %%           {T, _} = type(Name, Arity, Forms),
-            %%           T;
-            %%       Record ->
-            %%           {R, RT, _} = record(Record, Forms),
-            %%           {R, RT}
-            %%   end || D <- Deps1 ]
     end.
 
 sort(List) ->
