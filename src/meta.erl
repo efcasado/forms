@@ -66,6 +66,7 @@
     is_type_exported/2,
     records/1,
     record/2, record/3,
+    add_forms/2, add_forms/3,
     apply_changes/1, apply_changes/2, apply_changes/3
    ]).
 
@@ -191,12 +192,14 @@ add_function(Function, Export, Forms, _Opts) ->
     '_add_function'(Function, Export, Forms).
 
 '_add_function'({function, _, Name, Arity, _} =  Function, true, Forms) ->
-    [{eof, _} = EOF| Forms1] = lists:reverse(Forms),
-    Forms2 = lists:reverse([EOF, Function| Forms1]),
+    %% [{eof, _} = EOF| Forms1] = lists:reverse(Forms),
+    %% Forms2 = lists:reverse([EOF, Function| Forms1]),
+    Forms2 = add_forms([Function], Forms),
     export_function(Name, Arity, Forms2);
 '_add_function'(Function, false, Forms) ->
-    [{eof, _} = EOF| Forms1] = lists:reverse(Forms),
-    lists:reverse([EOF, Function| Forms1]).
+    add_forms([Function], Forms).
+    %% [{eof, _} = EOF| Forms1] = lists:reverse(Forms),
+    %% lists:reverse([EOF, Function| Forms1]).
 
 %%-------------------------------------------------------------------------
 %% @doc
@@ -984,6 +987,28 @@ load_forms(Module) ->
         _:_ ->
             throw({cannot_load_forms, Module})
     end.
+
+%%-------------------------------------------------------------------------
+%% @doc
+%% Add the provided forms at the end of the specified module.
+%% @end
+%%-------------------------------------------------------------------------
+add_forms(Forms, Module) ->
+    add_forms(Forms, Module, _Opts = []).
+
+add_forms(Forms, Module, Opts)
+  when is_atom(Module) ->
+    Forms1 = add_forms(Forms, load_forms(Module), Opts),
+    apply_changes(Module, Forms1, Opts);
+add_forms(Forms, ModuleForms, _Opts) ->
+    [{eof, _} = EOF| ModuleForms1] = lists:reverse(ModuleForms),
+    ModuleForms2 = lists:append([
+                                 [EOF],
+                                 Forms,
+                                 ModuleForms1
+                                ]),
+    lists:reverse(ModuleForms2).
+
 
 %%-------------------------------------------------------------------------
 %% @doc
