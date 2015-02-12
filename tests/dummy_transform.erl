@@ -5,21 +5,18 @@
 -export([parse_transform/2]).
 
 parse_transform(Forms, _Opts) ->
+    Bindings1 = [
+                 [{'X', 1}, {'Y', "one"}],
+                 [{'X', 2}, {'Y', "two"}],
+                 [{'X', 3}, {'Y', "three"}],
+                 [{'X', 4}, {'Y', "four"}],
+                 [{'X', 5}, {'Y', "five"}]
+                ],
     ToTextFunction =
         forms:function(to_text,
-                       fun(X1) -> Y1;
-                          (X2) -> Y2;
-                          (X3) -> Y3;
-                          (X4) -> Y4;
-                          (X5) -> Y5;
-                          (_)  -> {error, invalid_input}
-                       end,
                        [
-                        {'X1', 1}, {'Y1', "one"},
-                        {'X2', 2}, {'Y2', "two"},
-                        {'X3', 3}, {'Y3', "three"},
-                        {'X4', 4}, {'Y4', "four"},
-                        {'X5', 5}, {'Y5', "five"}
+                        {fun(X) -> Y end, Bindings1},
+                        {fun(_) -> {error, invalid_input} end, []}
                        ]),
     [EOF = {eof, _}| OtherForms] = lists:reverse(Forms),
     lists:reverse([EOF, ToTextFunction| OtherForms]).

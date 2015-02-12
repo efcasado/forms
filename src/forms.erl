@@ -48,6 +48,8 @@
     filter/2,
     any/2,
     all/2,
+    cons_to_list/1,
+    list_to_cons/1,
     %% Debug functions
     eval/1,
     from_abstract/1,
@@ -460,6 +462,30 @@ from_abstract(Forms) when is_list(Forms) ->
 from_abstract(Form) ->
     erl_prettypr:format(erl_syntax:form_list([Form])).
 
+%%-------------------------------------------------------------------------
+%% @doc
+%% Convert a cons (abstract representation of a list) into a list
+%% @end
+%%-------------------------------------------------------------------------
+-spec cons_to_list(form()) -> list().
+cons_to_list(Cons) ->
+    '_cons_to_list'(Cons, []).
+
+'_cons_to_list'({nil, _}, Acc) ->
+    Acc;
+'_cons_to_list'({cons, _, H, Cons}, Acc) ->
+    '_cons_to_list'(Cons, [H| Acc]).
+
+%%-------------------------------------------------------------------------
+%% @doc
+%% Convert a list into a cons (abstract representation of a list)
+%% @end
+%%-------------------------------------------------------------------------
+-spec list_to_cons(list()) -> form().
+list_to_cons([]) ->
+    {nil, 0};
+list_to_cons([H| Tail]) ->
+    {cons, 0, H, list_to_cons(Tail)}.
 
 %% ========================================================================
 %%  Local functions

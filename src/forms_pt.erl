@@ -12,14 +12,14 @@
 %%%
 %%% Name = int_to_text,
 %%% Bindings = [
-%%%             {'X1', 1}, {'Y1', "one"},
-%%%             {'X2', 2}, {'Y2', "two"},
-%%%                        {'Y3', {error, invalid_input}}
+%%%             [{'X', 1}, {'Y', "one"}],
+%%%             [{'X', 2}, {'Y', "two"}]
 %%%            ],
 %%% forms:function(Name,
-%%%                fun(X1) -> Y1;
-%%%                   (X2) -> Y2;
-%%%                   (_)  -> Y3 end,
+%%%                [
+%%%                   {fun(X) -> Y end, Bindings},
+%%%                   {fun(_) -> {error, invalid_input} end, []}
+%%%                ],
 %%%                Bindings).
 %%%
 %%% generates the function below
@@ -61,7 +61,7 @@
 %% Parse transform
 -export([parse_transform/2]).
 %% Functions used by the parse transform
--export([gen_function/4]).
+-export([gen_function/3]).
 
 
 %% ========================================================================
@@ -76,20 +76,34 @@ parse_transform(Forms, _Options) ->
             {atom, _, function}},
            [
             Name,
-            {'fun', _,
-             {clauses,
-              [{clause, _, Args, _Guards, _Body}| _] = Clauses}},
-            Bindings
+            {cons, _,
+             {tuple, _,
+              [{'fun', _,
+                {clauses,
+                 [{clause, _, Args, _Guards, _Body}| _]}},
+               _Bindings]},
+             _Tail} = Clauses
            ]}) ->
               Arity = length(Args),
               %%AbsArity = to_abstract(AbsArity),
+
+              QuotedClauses =
+                  lists:map(fun({tuple, _,
+                                 [{'fun', _, {clauses, Cs}}, Bs]}) ->
+                                    {tuple, 0, [forms:quote(Cs), Bs]}
+                            end,
+                            forms:cons_to_list(Clauses)),
+
+              QuotedClauses1 = forms:list_to_cons(QuotedClauses),
+
+              io:format("XXXX QuotedClauses~n~p~n", [QuotedClauses1]),
 
               %% We cannot pass the function clauses as is because it
               %% would not be a valid abstract code for a function call.
               %% This is why we convert the function clauses in a binary
               %% that we can pass as an argument to the
               %% `forms_pt:gen_function/4` function.
-              QuotedClauses = forms:quote(Clauses),
+              %% QuotedClauses = forms:quote(Clauses),
 
               %% Replace `forms:function/3` pseudo-call by a call to
               %% `forms_pt:gen_function/4`, which generates a function
@@ -99,8 +113,7 @@ parse_transform(Forms, _Options) ->
                 Name,
                 %% to_abstract(length(Args)),
                 {integer, 0, Arity},
-                QuotedClauses,
-                Bindings
+                QuotedClauses1
                ]};
          (Other) ->
               Other
@@ -112,27 +125,37 @@ parse_transform(Forms, _Options) ->
 %%  Utility functions
 %% =========================================================================
 
-gen_function(Name, Arity, QuotedClauses, Bindings)
+gen_function(Name, Arity, QuotedClauses)
   when is_atom(Name) andalso
-       is_integer(Arity) andalso
-       is_binary(QuotedClauses) ->
-    %% We convert the binary function clauses back to their abstract
-    %% representation.
-    UnquotedClauses = forms:unquote(QuotedClauses),
-    BoundClauses =
-        forms:map(
-          fun({var, Line, Var}) ->
-                  case proplists:get_value(Var, Bindings) of
-                      undefined ->
-                          {var, Line, Var};
-                      Value ->
-                          to_abstract(Value)
-                  end;
-             (Other) ->
-                  Other
-          end,
-          UnquotedClauses),
+       is_integer(Arity) ->
+    BoundClauses = bind(QuotedClauses),
     {function, 0, Name, Arity, BoundClauses}.
+
+bind(Forms) ->
+    bind(Forms, []).
+
+bind([], Acc) ->
+    Acc;
+bind([{QuotedClauses, Bindings}| Tail], Acc) ->
+    BoundClauses =
+        lists:flatmap(
+          fun(B) ->
+                  forms:map(
+                    fun({var, Line, Var}) ->
+                            case proplists:get_value(Var, B) of
+                                undefined ->
+                                    {var, Line, Var};
+                                Value ->
+                                    to_abstract(Value)
+                            end;
+                       (Other) ->
+                            Other
+                    end,
+                    forms:unquote(QuotedClauses))
+          end,
+          Bindings),
+    Acc1 = lists:append([Acc, BoundClauses]),
+    bind(Tail, Acc1).
 
 to_abstract(Element) ->
     X1 = lists:flatten(io_lib:format("~p", [Element])),
