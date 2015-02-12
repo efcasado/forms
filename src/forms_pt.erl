@@ -95,8 +95,6 @@ parse_transform(Forms, _Options) ->
 
               QuotedClauses1 = forms:list_to_cons(QuotedClauses),
 
-              io:format("XXXX QuotedClauses~n~p~n", [QuotedClauses1]),
-
               %% We cannot pass the function clauses as is because it
               %% would not be a valid abstract code for a function call.
               %% This is why we convert the function clauses in a binary
