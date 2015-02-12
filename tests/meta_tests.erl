@@ -24,8 +24,8 @@ is_function_exported_test() ->
 
 add_exported_function_transient_test() ->
     FooFunction = forms:function(foo,
-                                 fun() -> foo end,
-                                 []),
+                                 [{fun() -> foo end, []}]),
+
     %% Alternatively, we could have used
     %% FooFunction = forms:to_abstract("foo() -> foo."),
 
@@ -44,8 +44,7 @@ add_exported_function_transient_test() ->
 
 add_remove_exported_function_permanent_test() ->
     FooFunction = forms:function(foo,
-                                 fun() -> foo end,
-                                 []),
+                                 [{fun() -> foo end, []}]),
 
     false = meta:is_function_exported(foo, 0, dummy_module),
 
@@ -60,8 +59,7 @@ add_remove_exported_function_permanent_test() ->
 
 rename_function_test() ->
     FooFunction = forms:function(foo,
-                                 fun() -> foo end,
-                                 []),
+                                 [{fun() -> foo end, []}]),
 
     Forms1 = meta:add_function(FooFunction, true, dummy_module, []),
     foo = dummy_module:foo(),
@@ -73,8 +71,7 @@ rename_function_test() ->
 
 add_function_protected_test() ->
     FooFunction = forms:function(foo,
-                                 fun() -> foo end,
-                                 []),
+                                 [{fun() -> foo end, []}]),
 
     ListsForms0 = forms:read(lists),
     ListsForms1 = meta:add_function(FooFunction, _Export = true, ListsForms0),
@@ -88,8 +85,7 @@ add_function_protected_test() ->
 
 add_function_protected_error_test() ->
     FooFunction = forms:function(foo,
-                                 fun() -> foo end,
-                                 []),
+                                 [{fun() -> foo end, []}]),
 
     ListsForms0 = forms:read(lists),
     ListsForms1 = meta:add_function(FooFunction, _Export = true, ListsForms0),
@@ -97,10 +93,12 @@ add_function_protected_error_test() ->
 
 rename_function_protected_test() ->
     NewLookUp = forms:function(lookup,
-                               fun(_Key, _List) ->
-                                       hijacked
-                               end,
-                               []),
+                               [
+                                {fun(_Key, _List) ->
+                                         hijacked
+                                 end,
+                                 []}
+                               ]),
 
     PropListsForms0 = forms:read(proplists),
 
@@ -118,10 +116,13 @@ rename_function_protected_test() ->
 
 replace_function_protected_test() ->
     NewLookUp = forms:function(lookup,
-                               fun(_Key, _List) ->
-                                       hijacked
-                               end,
-                               []),
+                               [
+                                {fun(_Key, _List) ->
+                                         hijacked
+                                 end,
+                                 []}
+                               ]),
+
 
     PropListsForms0 = forms:read(proplists),
 
@@ -136,10 +137,12 @@ replace_function_protected_test() ->
 
 replace_function_wrong_arity_test() ->
     NewGetValue = forms:function(get_value,
-                                 fun(Key, List, Oops) ->
-                                         get_value(Key, List, hijacked)
-                                 end,
-                                 []),
+                                 [
+                                  {fun(Key, List, Oops) ->
+                                           get_value(Key, List, hijacked)
+                                   end,
+                                   []}
+                                 ]),
 
     wrong_arity = (catch meta:replace_function(get_value,
                                                2,
