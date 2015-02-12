@@ -19,8 +19,7 @@
 %%%                [
 %%%                   {fun(X) -> Y end, Bindings},
 %%%                   {fun(_) -> {error, invalid_input} end, []}
-%%%                ],
-%%%                Bindings).
+%%%                ]).
 %%%
 %%% generates the function below
 %%%
