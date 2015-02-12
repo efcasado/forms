@@ -133,7 +133,12 @@ bind(Forms) ->
 
 bind([], Acc) ->
     Acc;
+bind([{QuotedClauses, []}| Tail], Acc) ->
+    UnquotedClauses = forms:unquote(QuotedClauses),
+    Acc1 = lists:append([Acc, UnquotedClauses]),
+    bind(Tail, Acc1);
 bind([{QuotedClauses, Bindings}| Tail], Acc) ->
+    UnquotedClauses = forms:unquote(QuotedClauses),
     BoundClauses =
         lists:flatmap(
           fun(B) ->
@@ -148,7 +153,7 @@ bind([{QuotedClauses, Bindings}| Tail], Acc) ->
                        (Other) ->
                             Other
                     end,
-                    forms:unquote(QuotedClauses))
+                    UnquotedClauses)
           end,
           Bindings),
     Acc1 = lists:append([Acc, BoundClauses]),
