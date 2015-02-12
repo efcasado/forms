@@ -49,6 +49,7 @@
     has_record/2,
     has_type/3,
     behaviours/1,
+    callbacks/1,
     add_function/3, add_function/4,
     rm_function/4, rm_function/5,
     rename_function/5, rename_function/6,
@@ -176,6 +177,24 @@ behaviours(Module)
 behaviours(Forms) ->
     lists:zf(fun({attribute, _, behaviour, Behaviour}) ->
                      {true, Behaviour};
+                (_) ->
+                     false
+             end,
+             Forms).
+
+%%-------------------------------------------------------------------------
+%% @doc
+%% Get a list featuring the name and arity of all the callbacks defined
+%% in the provided module.
+%% @end
+%%-------------------------------------------------------------------------
+-spec callbacks(meta_module()) -> list().
+callbacks(Module)
+  when is_atom(Module) ->
+    callbacks(load_forms(Module));
+callbacks(Forms) ->
+    lists:zf(fun({attribute, _, callback, {Callback, _}}) ->
+                     {true, Callback};
                 (_) ->
                      false
              end,
