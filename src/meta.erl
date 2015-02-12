@@ -48,6 +48,7 @@
     has_function/3,
     has_record/2,
     has_type/3,
+    behaviours/1,
     add_function/3, add_function/4,
     rm_function/4, rm_function/5,
     rename_function/5, rename_function/6,
@@ -160,6 +161,25 @@ has_type(Name, Arity, [{attribute, _, type, {Name, _, Args}}| _])
     true;
 has_type(Name, Arity, [_| Forms]) ->
     has_type(Name, Arity, Forms).
+
+
+%%-------------------------------------------------------------------------
+%% @doc
+%% Get a list featuring the name of all the behaviours used by the provided
+%% module.
+%% @end
+%%-------------------------------------------------------------------------
+-spec behaviours(meta_module()) -> list().
+behaviours(Module)
+  when is_atom(Module) ->
+    behaviours(load_forms(Module));
+behaviours(Forms) ->
+    lists:zf(fun({attribute, _, behaviour, Behaviour}) ->
+                     {true, Behaviour};
+                (_) ->
+                     false
+             end,
+             Forms).
 
 %%-------------------------------------------------------------------------
 %% @doc
