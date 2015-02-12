@@ -469,7 +469,7 @@ from_abstract(Form) ->
 %%-------------------------------------------------------------------------
 -spec cons_to_list(form()) -> list().
 cons_to_list(Cons) ->
-    '_cons_to_list'(Cons, []).
+    lists:reverse('_cons_to_list'(Cons, [])).
 
 '_cons_to_list'({nil, _}, Acc) ->
     Acc;
