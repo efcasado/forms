@@ -48,6 +48,7 @@
     has_function/3,
     has_record/2,
     has_type/3,
+    has_spec/3,
     behaviours/1,
     callbacks/1,
     add_function/3, add_function/4,
@@ -163,6 +164,22 @@ has_type(Name, Arity, [{attribute, _, type, {Name, _, Args}}| _])
 has_type(Name, Arity, [_| Forms]) ->
     has_type(Name, Arity, Forms).
 
+%%-------------------------------------------------------------------------
+%% @doc
+%% Check if the specified function specification exists in the provided
+%% module.
+%% @end
+%%-------------------------------------------------------------------------
+-spec has_spec(atom(), arity(), meta_module()) -> boolean().
+has_spec(Name, Arity, Module)
+  when is_atom(Module) ->
+    has_spec(Name, Arity, load_forms(Module));
+has_spec(_Name, _Arity, []) ->
+    false;
+has_spec(Name, Arity, [{attribute, _, spec, {{Name, Arity}, _}}| _]) ->
+    true;
+has_spec(Name, Arity, [_| Forms]) ->
+    has_spec(Name, Arity, Forms).
 
 %%-------------------------------------------------------------------------
 %% @doc
