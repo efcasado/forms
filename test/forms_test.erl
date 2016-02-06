@@ -35,13 +35,12 @@
 -include_lib("eunit/include/eunit.hrl").
 
 
-
 %% ========================================================================
 %%  Tests
 %% ========================================================================
 
 read_from_source_test() ->
-    SourceFile = "tests/dummy_module.erl",
+    SourceFile = "test/dummy_module.erl",
     Forms = forms:read(SourceFile),
     {attribute, 1, file, {SourceFile, 1}} = hd(Forms).
 
@@ -51,13 +50,18 @@ read_from_source_error_test() ->
 
 read_from_binary_test() ->
     Forms = forms:read(dummy_module),
-    {attribute, 1, file, {"tests/dummy_module.erl", 1}} = hd(Forms).
+    {attribute, 1, file, {_SrcFile, 1}} = hd(Forms).
 
 read_from_binary_error1_test() ->
     {module_not_found, i_do_not_exist} =
         (catch forms:read(i_do_not_exist)).
 
 read_from_binary_error2_test() ->
+    %% Ensure no_debug_info module is compiled without the +debug_info
+    %% option
+    Dir = filename:dirname(code:which(no_debug_info)),
+    {ok, no_debug_info} = compile:file(filename:join(Dir, "no_debug_info"),
+                                       [{outdir,Dir}]),
     {forms_not_found, no_debug_info} =
         (catch forms:read(no_debug_info)).
 
@@ -129,3 +133,12 @@ any_false_test() ->
     false = forms:any(fun({function, _, doesnotexist, 2, _}) -> true;
                          (_) -> false end,
                       Forms).
+
+
+%% ========================================================================
+%%  Auxiliary functions
+%% ========================================================================
+
+erl_from_beam(Module) ->
+    BeamFile = code:which(Module),
+    filename:dirname(BeamFile) ++ atom_to_list(Module) ++ ".erl".

@@ -1,14 +1,61 @@
-PROJECT             = forms
+###========================================================================
+### File: Makefile
+###
+###
+### Author(s):
+###     - Enrique Fernandez <efcasado@gmail.com>
+###
+###-- LICENSE -------------------------------------------------------------
+### The MIT License (MIT)
+###
+### Copyright (c) 2016, Enrique Fernandez <efcasado@gmail.com>
+###
+### Permission is hereby granted, free of charge, to any person obtaining a
+### copy of this software and associated documentation files (the
+### "Software"), to deal in the Software without restriction, including
+### without limitation the rights to use, copy, modify, merge, publish,
+### distribute, sublicense, and/or sell copies of the Software, and to
+### permit persons to whom the Software is furnished to do so, subject to
+###  the following conditions:
+###
+### The above copyright notice and this permission notice shall be included
+### in all copies or substantial portions of the Software.
+###
+### THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
+### OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+### MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+### IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+### CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+### TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+### SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+###========================================================================
+.PHONY: all compile test eunit clean clean-all
 
-TEST_DIR            = tests
 
-TEST_COMPILE_FIRST  = dummy_transform
-TEST_ERLC_EXCLUDE   = no_debug_info
+## Macros
+##-------------------------------------------------------------------------
+REBAR = ./rebar3
 
-TEST_ERLC_OPTS0    := -o $(TEST_DIR) $(TEST_ERLC_OPTS)
-TEST_ERLC_OPTS     += -pa $(TEST_DIR) +debug_info
 
-include erlang.mk
+## Settings
+##-------------------------------------------------------------------------
+EUNIT_OPTS ?=
 
-test-build::
-	@erlc -v $(TEST_ERLC_OPTS0) tests/no_debug_info.erl
+
+## Targets
+##-------------------------------------------------------------------------
+all: compile
+
+compile:
+	$(REBAR) compile
+
+test: eunit
+
+eunit:
+	$(REBAR) eunit $(EUNIT_OPTS)
+
+clean:
+	$(REBAR) clean
+
+clean-all: clean
+	rm -rf _build
