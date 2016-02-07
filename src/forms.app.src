@@ -3,6 +3,6 @@
  [
   {description, "Collection of functions that simplify working with "
    "Erlang abstract forms"},
-  {vsn, "0.2"},
+  {vsn, git},
   {modules, []}
  ]}.
