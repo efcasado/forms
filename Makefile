@@ -58,4 +58,7 @@ clean:
 	$(REBAR) clean
 
 clean-all: clean
+	$(REBAR) unlock
+	rm -rf */*~
+	rm -rf logs
 	rm -rf _build
