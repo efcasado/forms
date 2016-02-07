@@ -4,3 +4,5 @@ ebin
 *.beam
 logs
 deps
+rebar.lock
+_build
