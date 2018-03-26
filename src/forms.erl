@@ -42,6 +42,7 @@
     read/1,
     quote/1,
     unquote/1,
+    function/2,
     map/2, map/3,
     reduce/3, reduce/4,
     mr/3,
@@ -421,6 +422,59 @@ unquote({bin, _, BinElements}) ->
 unquote(Binary) when is_binary(Binary) ->
     binary_to_term(Binary).
 
+%%-------------------------------------------------------------------------
+%% @doc
+%% Generates the provided function. This function can be used to
+%% programmatically create functions.
+%%
+%% The following code
+%%
+%% ```
+%% Name = int_to_text,
+%% Bindings = [
+%%             [{'$X', 1}, {'$Y', "one"}],
+%%             [{'$X', 2}, {'$Y', "two"}]
+%%            ],
+%% forms:function(Name,
+%%                [
+%%                   {fun('$X') -> '$Y' end, Bindings},
+%%                   {fun(_)    -> {error, invalid_input} end, []}
+%%                ]).
+%% '''
+%%
+%% generates the function below
+%%
+%% ```
+%% {function,0,int_to_text,1,
+%%           [{clause,8,[{integer,1,1}],[],[{string,1,"one"}]},
+%%            {clause,8,[{integer,1,2}],[],[{string,1,"two"}]},
+%%            {clause,9,
+%%                    [{var,9,'_'}],
+%%                    [],
+%%                    [{tuple,9,[{atom,9,error},{atom,9,invalid_input}]}]}]}
+%% '''
+%%
+%% or in plain Erlang
+%%
+%% ```
+%% int_to_text(1) -> "one";
+%% int_to_text(2) -> "two";
+%% int_to_text(_) -> {error, invalid_input}.
+%% '''
+%%
+%% @end
+%%-------------------------------------------------------------------------
+function(Name, Clauses0) ->
+    Clauses1 =
+        lists:map(fun({C, Bs}) ->
+                          {fun_data, [], Cs} = erl_eval:fun_data(C),
+                          {Cs, Bs}
+                  end,
+                  Clauses0),
+    [{[{clause, _L, As, _G, _Cs}| _], _Bs}| _] = Clauses1,
+    Arity = length(As),
+    gen_function(Name, Arity, Clauses1).
+
 
 %% ========================================================================
 %%  Debug functions
@@ -504,6 +558,47 @@ parse_opts(Opts) ->
 
 forms_only(Opts) ->
     proplists:get_value(forms_only, Opts, false).
+
+gen_function(Name, Arity, QuotedClauses)
+  when is_atom(Name) andalso
+       is_integer(Arity) ->
+    BoundClauses = bind(QuotedClauses),
+    {function, 0, Name, Arity, BoundClauses}.
+
+bind(Forms) ->
+    bind(Forms, []).
+
+bind([], Acc) ->
+    Acc;
+bind([{Clauses, []}| Tail], Acc) ->
+    Acc1 = lists:append([Acc, Clauses]),
+    bind(Tail, Acc1);
+bind([{Clauses, Bindings}| Tail], Acc) ->
+    BoundClauses =
+        lists:flatmap(
+          fun(B) ->
+                  forms:map(
+                    fun({atom, Line, Var}) ->
+                            case proplists:get_value(Var, B) of
+                                undefined ->
+                                    {var, Line, Var};
+                                Value ->
+                                    to_abstract2(Value)
+                            end;
+                       (Other) ->
+                            Other
+                    end,
+                    Clauses)
+          end,
+          Bindings),
+    Acc1 = lists:append([Acc, BoundClauses]),
+    bind(Tail, Acc1).
+
+to_abstract2(Element) ->
+    X1 = lists:flatten(io_lib:format("~p", [Element])),
+    [X2] = forms:to_abstract(
+             lists:append([X1, "."])),
+    X2.
 
 %%-------------------------------------------------------------------------
 %% @doc
