@@ -6,3 +6,4 @@ logs
 *.plt
 rebar.lock
 _build
+doc
