@@ -2,10 +2,18 @@ forms
 =====
 [![Build Status](https://travis-ci.org/efcasado/forms.svg?branch=master)](https://travis-ci.org/efcasado/forms)
 
-A simple library that simplifies working with the Erlang abstract format.
+A library that simplifies working with [Erlang's abstract format](http://erlang.org/doc/apps/erts/absform.html).
 
-> If you are curious about what `forms` is capable of doing, I suggest you to check out
-> [meta](https://github.com/efcasado/meta).
+Documentation is available at [HexDocs](https://hexdocs.pm/forms/).
+
+If you want to know more about what `forms` could do for you, check the
+following projects:
+
+- [meta](https://github.com/efcasado/meta) - A metaprogramming library for
+Erlang
+- [behaviours2](https://github.com/efcasado/behaviours2) - Erlang behaviours
+on steroids
+
 
 ### Fetching a module's forms
 
