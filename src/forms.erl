@@ -13,7 +13,7 @@
 %%%-- LICENSE -------------------------------------------------------------
 %%% The MIT License (MIT)
 %%%
-%%% Copyright (c) 2014-2015 Enrique Fernandez
+%%% Copyright (c) 2014-2018 Enrique Fernandez
 %%%
 %%% Permission is hereby granted, free of charge, to any person obtaining
 %%% a copy of this software and associated documentation files (the
@@ -360,16 +360,19 @@ all(Pred, [_F| Fs]) ->
 %% when manipulating Erlang's abstract code.
 %%
 %% The following abstract code is not valid code
-%%
-%%     {match, 1, {var, 1, 'A'},
-%%                {function, 1, foo, 0,
-%%                 [
-%%                  {clause, 0, [], [], [{atom, 1, foo}]}
-%%                 ]}}
+%% ```
+%% {match, 1, {var, 1, 'A'},
+%%            {function, 1, foo, 0,
+%%             [
+%%              {clause, 0, [], [], [{atom, 1, foo}]}
+%%             ]}}
+%% '''
 %%
 %% because, in Erlang code, it would be equivalent to
 %%
-%%     A = foo() -> foo.
+%% ```
+%% A = foo() -> foo.
+%% '''
 %%
 %% which is, obviously, no valid Erlang code. However, one could quote
 %% the right-hand side of the above match operation so that it becomes
@@ -377,16 +380,21 @@ all(Pred, [_F| Fs]) ->
 %%
 %% One could consider that an expression similar to the one below
 %%
-%%     {match, 1, {var, 1, 'A'},
-%%                forms:quote(
-%%                    {function, 1, foo, 0,
-%%                     [
-%%                      {clause, 0, [], [], [{atom, 1, foo}]}
-%%                     ]})}
+%% ```
+%% {match, 1, {var, 1, 'A'},
+%%            forms:quote(
+%%                {function, 1, foo, 0,
+%%                 [
+%%                  {clause, 0, [], [], [{atom, 1, foo}]}
+%%                 ]})}
+%% '''
 %%
 %% becomes something like
 %%
-%%     A = <<...>>.
+%% ```
+%% A = <<...>>.
+%% '''
+%%
 %% @end
 %%-------------------------------------------------------------------------
 quote(Term) ->
