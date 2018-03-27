@@ -2,9 +2,9 @@
 {application, meta,
  [
   {description, "A metaprogramming library for Erlang"},
-  {vsn, "0.1.1"},
+  {vsn, "0.1.2"},
   {modules, [meta]},
-  {applications, [kernel, stdlib]},
+  {applications, [kernel, stdlib, forms]},
   {maintainers, ["Enrique Fernandez"]},
   {licenses, ["MIT"]},
   {links, [{"Github", "https://github.com/efcasado/forms"}]}
