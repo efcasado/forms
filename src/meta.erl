@@ -1071,12 +1071,21 @@ add_forms(Forms, Module, Opts)
     Forms1 = add_forms(Forms, load_forms(Module), Opts),
     apply_changes(Module, Forms1, Opts);
 add_forms(Forms, ModuleForms, _Opts) ->
-    [{eof, _} = EOF| ModuleForms1] = lists:reverse(ModuleForms),
-    ModuleForms2 = lists:append([
-                                 [EOF],
-                                 Forms,
-                                 ModuleForms1
-                                ]),
+    ReversedForms = lists:reverse(ModuleForms),
+    ModuleForms2 =
+        case ReversedForms of
+            [{eof, _} = EOF| ModuleForms1] ->
+                lists:append([
+                              [EOF],
+                              Forms,
+                              ModuleForms1
+                             ]);
+            _ ->
+                lists:append([
+                              Forms,
+                              ReversedForms
+                             ])
+        end,
     lists:reverse(ModuleForms2).
 
 
