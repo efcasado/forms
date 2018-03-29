@@ -285,8 +285,7 @@ rm_function(F, A, RmAll, Forms) ->
     '_rm_function'(F, A, RmAll, Forms).
 
 '_rm_function'(F1, A1, false, Forms) ->
-    Forms1 = unexport_function(F1, A1, Forms),
-    Forms2 = rm_spec(F1, A1, Forms1),
+    Forms1 = rm_spec(F1, A1, Forms),
     lists:foldr(fun({function, _, F2, A2, _}, Acc)
                       when F1 == F2 andalso
                            A1 == A2 ->
@@ -295,14 +294,15 @@ rm_function(F, A, RmAll, Forms) ->
                         [Other| Acc]
                 end,
                 [],
-                Forms2);
+                Forms1);
 '_rm_function'(F1, A1, true, Forms) ->
-    Forms1 = rm_function(F1, A1, false, Forms),
-    CallingFunctions = calling_functions(F1, A1, Forms1),
+    Forms1 = unexport_function(F1, A1, Forms),
+    Forms2 = rm_function(F1, A1, false, Forms1),
+    CallingFunctions = calling_functions(F1, A1, Forms2),
     lists:foldl(fun({F2, A2}, AccForms) ->
                         rm_function(F2, A2, true, AccForms)
                 end,
-                Forms1,
+                Forms2,
                 CallingFunctions).
 
 %%-------------------------------------------------------------------------
