@@ -2,7 +2,7 @@
 {application, meta,
  [
   {description, "A metaprogramming library for Erlang"},
-  {vsn, "0.1.2"},
+  {vsn, "0.1.3"},
   {modules, [meta]},
   {applications, [kernel, stdlib, forms]},
   {maintainers, ["Enrique Fernandez"]},
