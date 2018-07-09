@@ -405,7 +405,7 @@ replace_function(_Name, Arity, {function, _, _, A, _}, _Forms)
     throw(wrong_arity);
 replace_function(Name, Arity, Function, Forms) ->
     Forms1 = rm_function(Name, Arity, false, Forms),
-    add_function(Function, true, Forms1).
+    add_function(Function, false, Forms1).
 
 %%-------------------------------------------------------------------------
 %% @doc
