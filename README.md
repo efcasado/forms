@@ -1,6 +1,6 @@
 forms
 =====
-[![Build Status](https://travis-ci.org/efcasado/forms.svg?branch=master)](https://travis-ci.org/efcasado/forms)
+[![Build Status](https://github.com/efcasado/forms/actions/workflows/ci.yml/badge.svg?branch=master)](https://github.com/efcasado/forms/actions)
 
 A library that simplifies working with [Erlang's abstract format](http://erlang.org/doc/apps/erts/absform.html).
 
